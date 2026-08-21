@@ -1,0 +1,5 @@
+//PICO 4 Ultra/PICO 4
+third_party/picoxr/libs/android.arm64-v8a/libopenxr_loader.so
+
+//Meta Quest 3/3S/2
+third_party/OVRPlatformSDK/Android/libs/arm64-v8a/libovrplatformloader.so

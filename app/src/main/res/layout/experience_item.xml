@@ -6,11 +6,11 @@
 
         <variable
             name="experience"
-            type="com.igalia.wolvic.utils.Experience" />
+            type="com.r800zz.r800zzbrowser.utils.Experience" />
 
         <variable
             name="listener"
-            type="com.igalia.wolvic.ui.adapters.ExperiencesAdapter.ClickListener" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.ExperiencesAdapter.ClickListener" />
     </data>
 
     <FrameLayout

@@ -26,6 +26,27 @@
 #include "Quad.h"
 #include "Widget.h"
 
+//r800zz
+static const char* sChromaKeySurfaceFragmentShader = R"SHADER( //r800zz
+#version 100 //r800zz
+#extension GL_OES_EGL_image_external : require //r800zz
+precision VRB_FRAGMENT_PRECISION float; //r800zz
+ //r800zz
+uniform samplerExternalOES u_texture0; //r800zz
+varying vec4 v_color; //r800zz
+varying vec2 v_uv; //r800zz
+void main() { //r800zz
+  vec4 color = texture2D(u_texture0, v_uv) * v_color; //r800zz
+  float green = color.g; //r800zz
+  float redBlue = max(color.r, color.b); //r800zz
+  if (green > 0.35 && green > redBlue * 1.25) { //r800zz
+    discard; //r800zz
+  } //r800zz
+  gl_FragColor = color; //r800zz
+} //r800zz
+)SHADER"; //r800zz
+//
+
 namespace crow {
 
 struct VRVideo::State {
@@ -89,6 +110,9 @@ struct VRVideo::State {
       case VRVideoProjection::VIDEO_PROJECTION_180:
         leftEye = createSphereProjection(true, device::EyeRect(0.0f, 0.0f, 1.0f, 1.0f));
         break;
+      case VRVideoProjection::VIDEO_PROJECTION_180_2D_TO_VR: //r800zz
+        leftEye = createSphereProjection(true, device::EyeRect(0.0f, 0.0f, 1.0f, 1.0f)); //r800zz
+        break; //r800zz
       case VRVideoProjection::VIDEO_PROJECTION_180_STEREO_LEFT_RIGHT:
         leftEye = createSphereProjection(true, device::EyeRect(0.0f, 0.0f, 0.5f, 1.0f));
         rightEye = createSphereProjection(true, device::EyeRect(0.5f, 0.0f, 0.5f, 1.0f));
@@ -117,6 +141,9 @@ struct VRVideo::State {
       case VRVideoProjection::VIDEO_PROJECTION_180:
         create180ProjectionLayer();
         break;
+      case VRVideoProjection::VIDEO_PROJECTION_180_2D_TO_VR: //r800zz
+        create180ProjectionLayer(); //r800zz use normal VR180 layer after flat-to-equirect blit
+        break; //r800zz
       case VRVideoProjection::VIDEO_PROJECTION_180_STEREO_LEFT_RIGHT:
         create180LRProjectionLayer();
         break;
@@ -164,7 +191,8 @@ struct VRVideo::State {
 
     std::vector<int> indices;
 
-    vrb::ProgramPtr program = create->GetProgramFactory()->CreateProgram(create, vrb::FeatureSurfaceTexture | vrb::FeatureHighPrecision);
+    vrb::ProgramPtr program = create->GetProgramFactory()->CreateProgram(
+        create, vrb::FeatureSurfaceTexture | vrb::FeatureHighPrecision);
     vrb::RenderStatePtr state = vrb::RenderState::Create(create);
     state->SetProgram(program);
     state->SetLightsEnabled(false);
@@ -198,6 +226,89 @@ struct VRVideo::State {
     } else {
       transform->SetTransform(vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), (float) M_PI * -0.5f));
     }
+    transform->AddNode(geometry);
+
+    vrb::TogglePtr result = vrb::Toggle::Create(create);
+    result->AddNode(transform);
+    return result;
+  }
+
+  vrb::TogglePtr createSphereProjection2DToVR() { //r800zz
+    const int kCols = 70;
+    const int kRows = 70;
+    const float kRadius = 10.0f;
+    const float kFovScale = 1.0f;
+
+    vrb::CreationContextPtr create = context.lock();
+    vrb::VertexArrayPtr array = vrb::VertexArray::Create(create);
+
+    for (float row = 0; row <= kRows; row += 1.0f) {
+      const float alpha = row * (float)M_PI / kRows;
+      const float sinAlpha = sinf(alpha);
+      const float cosAlpha = cosf(alpha);
+
+      for (float col = 0; col <= kCols; col += 1.0f) {
+        const float beta = col * (float)M_PI / kCols;
+        const float sinBeta = sinf(beta);
+        const float cosBeta = cosf(beta);
+
+        vrb::Vector normal;
+        normal.x() = cosBeta * sinAlpha;
+        normal.y() = cosAlpha;
+        normal.z() = sinBeta * sinAlpha;
+
+        vrb::Vector vertex;
+        vertex.x() = kRadius * normal.x();
+        vertex.y() = kRadius * normal.y();
+        vertex.z() = kRadius * normal.z();
+
+        float u = 0.5f;
+        float v = 0.5f;
+
+        if (normal.z() > 0.001f) {
+          u = 0.5f - (normal.x() / normal.z()) * 0.5f * kFovScale;
+          v = 0.5f - (normal.y() / normal.z()) * 0.5f * kFovScale;
+        }
+
+        array->AppendVertex(vertex);
+        array->AppendUV(vrb::Vector(u, v, 0.0f));
+        array->AppendNormal(vertex.Normalize());
+      }
+    }
+
+    std::vector<int> indices;
+
+    vrb::ProgramPtr program = create->GetProgramFactory()->CreateProgram(
+    create, vrb::FeatureSurfaceTexture | vrb::FeatureHighPrecision);
+    vrb::RenderStatePtr state = vrb::RenderState::Create(create);
+    state->SetProgram(program);
+    state->SetLightsEnabled(false);
+    vrb::TexturePtr texture = std::dynamic_pointer_cast<vrb::Texture>(window->GetSurfaceTexture());
+    state->SetTexture(texture); //r800zz
+
+    vrb::GeometryPtr geometry = vrb::Geometry::Create(create);
+    geometry->SetVertexArray(array);
+    geometry->SetRenderState(state);
+
+    for (int row = 0; row < kRows; row++) {
+      for (int col = 0; col < kCols; col++) {
+        int first = 1 + (row * (kCols + 1)) + col;
+        int second = first + kCols + 1;
+
+        indices.clear();
+        indices.push_back(first);
+        indices.push_back(second);
+        indices.push_back(first + 1);
+
+        indices.push_back(second);
+        indices.push_back(second + 1);
+        indices.push_back(first + 1);
+        geometry->AddFace(indices, indices, indices);
+      }
+    }
+
+    vrb::TransformPtr transform = vrb::Transform::Create(create);
+    transform->SetTransform(vrb::Matrix::Rotation(vrb::Vector(0.0f, 1.0f, 0.0f), (float)M_PI));
     transform->AddNode(geometry);
 
     vrb::TogglePtr result = vrb::Toggle::Create(create);
@@ -250,6 +361,13 @@ struct VRVideo::State {
     vrb::CreationContextPtr create = context.lock();
     DeviceDelegatePtr device = deviceWeak.lock();
     VRLayerEquirectPtr equirect = device->CreateLayerEquirect(window->GetLayer());
+//fix vr180
+equirect->SetAngles(
+    (float)M_PI,
+    (float)M_PI * 0.5f,
+    -(float)M_PI * 0.5f
+);
+//
     layer = equirect;
 
     vrb::Matrix uvTransform = vrb::Matrix::Identity();
@@ -266,6 +384,13 @@ struct VRVideo::State {
     vrb::CreationContextPtr create = context.lock();
     DeviceDelegatePtr device = deviceWeak.lock();
     VRLayerEquirectPtr equirect = device->CreateLayerEquirect(window->GetLayer());
+//fix vr180
+equirect->SetAngles(
+    (float)M_PI,
+    (float)M_PI * 0.5f,
+    -(float)M_PI * 0.5f
+);
+//
     layer = equirect;
 
     equirect->SetTextureRect(device::Eye::Left, device::EyeRect(0.0f, 0.0f, 0.5f, 1.0f));
@@ -297,6 +422,13 @@ struct VRVideo::State {
     vrb::CreationContextPtr create = context.lock();
     DeviceDelegatePtr device = deviceWeak.lock();
     VRLayerEquirectPtr equirect = device->CreateLayerEquirect(window->GetLayer());
+//fix vr180
+equirect->SetAngles(
+    (float)M_PI,
+    (float)M_PI * 0.5f,
+    -(float)M_PI * 0.5f
+);
+//
     layer = equirect;
 
     equirect->SetTextureRect(device::Eye::Right, device::EyeRect(0.0f, 0.5f, 1.0f, 0.5f));
@@ -335,7 +467,8 @@ struct VRVideo::State {
     vrb::Vector min, max;
     window->GetWidgetMinAndMax(min, max);
     vrb::GeometryPtr geometry = Quad::CreateGeometry(create, min, max, aUVRect);
-    vrb::ProgramPtr program = create->GetProgramFactory()->CreateProgram(create, vrb::FeatureSurfaceTexture);
+    vrb::ProgramPtr program = create->GetProgramFactory()->CreateProgram(
+        create, vrb::FeatureSurfaceTexture);
     vrb::RenderStatePtr state = vrb::RenderState::Create(create);
     state->SetProgram(program);
     state->SetLightsEnabled(false);

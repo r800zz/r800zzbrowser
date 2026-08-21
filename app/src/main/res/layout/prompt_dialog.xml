@@ -12,7 +12,7 @@
         android:paddingBottom="@dimen/prompt_dialog_padding_bottom"
         android:clipToPadding="false">
 
-        <com.igalia.wolvic.ui.views.UIButton
+        <com.r800zz.r800zzbrowser.ui.views.UIButton
             android:id="@+id/backButton"
             style="?attr/headerBarButtonStyle"
             android:layout_marginStart="-34dp"
@@ -59,7 +59,7 @@
                 tools:text="Title" />
         </FrameLayout>
 
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/bodyContainer"
             style="@style/customScrollViewStyle"
             android:layout_width="322dp"
@@ -79,7 +79,7 @@
                 android:textColor="@color/fog"
                 android:textSize="@dimen/text_medium_size"
                 tools:text="Body" />
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
         <FrameLayout
             android:id="@+id/descriptionContainer"

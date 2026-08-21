@@ -527,11 +527,42 @@ VRLayerCube::~VRLayerCube() {}
 
 struct VRLayerEquirect::State: public VRLayer::State {
   vrb::Matrix uvTransform[2];
-  State() {
+  float centralHorizontalAngle;
+  float upperVerticalAngle;
+  float lowerVerticalAngle;
+
+  State()
+      : centralHorizontalAngle(6.283185307179586f),
+        upperVerticalAngle(1.570796326794897f),
+        lowerVerticalAngle(-1.570796326794897f) {
     uvTransform[0] = vrb::Matrix::Identity();
     uvTransform[1] = vrb::Matrix::Identity();
   }
 };
+
+//
+void
+VRLayerEquirect::SetAngles(float aCentralHorizontalAngle, float aUpperVerticalAngle, float aLowerVerticalAngle) {
+  m.centralHorizontalAngle = aCentralHorizontalAngle;
+  m.upperVerticalAngle = aUpperVerticalAngle;
+  m.lowerVerticalAngle = aLowerVerticalAngle;
+}
+
+float
+VRLayerEquirect::GetCentralHorizontalAngle() const {
+  return m.centralHorizontalAngle;
+}
+
+float
+VRLayerEquirect::GetUpperVerticalAngle() const {
+  return m.upperVerticalAngle;
+}
+
+float
+VRLayerEquirect::GetLowerVerticalAngle() const {
+  return m.lowerVerticalAngle;
+}
+//
 
 VRLayerEquirectPtr
 VRLayerEquirect::Create() {

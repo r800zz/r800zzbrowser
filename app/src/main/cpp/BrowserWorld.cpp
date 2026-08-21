@@ -11,6 +11,7 @@
 #include "DeviceDelegate.h"
 #include "EngineSurfaceTexture.h"
 #include "ExternalBlitter.h"
+#include "LayerBlitter.h"
 #include "ExternalVR.h"
 #include "Skybox.h"
 #include "SplashAnimation.h"
@@ -63,6 +64,8 @@
 #include <functional>
 #include <fstream>
 #include <unordered_map>
+#include <mutex> //r800zz
+#include <vector> //r800zz
 
 #if defined(OCULUSVR) && defined(STORE_BUILD)
 #include "OVR_Platform.h"
@@ -191,6 +194,7 @@ struct BrowserWorld::State {
   GestureDelegateConstPtr gestures;
   ExternalVRPtr externalVR;
   ExternalBlitterPtr blitter;
+  LayerBlitterPtr layerBlitter;
   bool windowsInitialized;
   SkyboxPtr skybox;
   FadeAnimationPtr fadeAnimation;
@@ -199,6 +203,7 @@ struct BrowserWorld::State {
   WidgetPtr resizingWidget;
   SplashAnimationPtr splashAnimation;
   VRVideoPtr vrVideo;
+  WidgetPtr vrVideoWidget; //r800zz chromakey
   PerformanceMonitorPtr monitor;
   WidgetMoverPtr movingWidget;
   WidgetResizerPtr widgetResizer;
@@ -209,6 +214,13 @@ struct BrowserWorld::State {
   WebXRInterstialState webXRInterstialState;
   vrb::Matrix widgetsYaw;
   bool wasWebXRRendering = false;
+  int chromaKeyMode = 1; //r800zz
+  int chromaKeyWindowHandle = -1; //r800zz
+  std::vector<uint8_t> aiSegmentationMask; //r800zz
+  int aiSegmentationMaskWidth = 0; //r800zz
+  int aiSegmentationMaskHeight = 0; //r800zz
+  std::mutex aiSegmentationMaskMutex; //r800zz
+  bool flatToEquirectEnabled = false; //r800zz
   double lastBatteryLevelUpdate = -1.0;
   bool reorientRequested = false;
   LockMode lockMode = LockMode::NO_LOCK;
@@ -244,6 +256,7 @@ struct BrowserWorld::State {
     controllers = ControllerContainer::Create(create, rootTransparent, loader);
     externalVR = ExternalVR::Create();
     blitter = ExternalBlitter::Create(create);
+    layerBlitter = LayerBlitter::Create(create);
     fadeAnimation = FadeAnimation::Create(create);
     splashAnimation = SplashAnimation::Create(create);
     monitor = PerformanceMonitor::Create(create);
@@ -270,6 +283,7 @@ struct BrowserWorld::State {
   float ComputeNormalizedZ(const Widget& aWidget) const;
   void SortWidgets();
   void UpdateWidgetCylinder(const WidgetPtr& aWidget, const float aDensity);
+  bool aiSegmentationMaskUpdated = false; //r800zz
 };
 
 void
@@ -286,9 +300,9 @@ wasGoBackButtonClicked(const Controller& controller, bool isPresenting) {
         return !(controller.lastButtonState & button) && (controller.buttonState & button);
     };
 
-    return (WasButtonPressed(controller, ControllerDelegate::BUTTON_APP) ||
-           (!isPresenting && (WasButtonPressed(controller, ControllerDelegate::BUTTON_B) ||
-                              WasButtonPressed(controller, ControllerDelegate::BUTTON_Y))));
+    return (WasButtonPressed(controller, ControllerDelegate::BUTTON_APP)  ||
+            (!isPresenting && (WasButtonPressed(controller, ControllerDelegate::BUTTON_B) ||
+                              WasButtonPressed(controller, ControllerDelegate::BUTTON_Y))) );
 };
 
 void
@@ -1348,6 +1362,34 @@ BrowserWorld::TogglePassthrough() {
   }
 }
 
+void //r800zz
+BrowserWorld::SetChromaKeyMode(int aMode, int aWindowHandle) { //r800zz
+  ASSERT_ON_RENDER_THREAD(); //r800zz
+
+  if (aMode < 0 || aMode > 6) { //r800zz
+    return; //r800zz
+  } //r800zz
+
+  m.chromaKeyMode = aMode; //r800zz
+  m.chromaKeyWindowHandle = aWindowHandle; //r800zz
+} //r800zz
+
+void
+BrowserWorld::SetAiSegmentationMask(const std::vector<uint8_t>& aMask,
+                                    int aWidth,
+                                    int aHeight) { //r800zz
+  std::lock_guard<std::mutex> lock(m.aiSegmentationMaskMutex); //r800zz
+  m.aiSegmentationMask = aMask; //r800zz
+  m.aiSegmentationMaskWidth = aWidth; //r800zz
+  m.aiSegmentationMaskHeight = aHeight; //r800zz
+  m.aiSegmentationMaskUpdated = true; //r800zz
+}
+
+bool //r800zz
+BrowserWorld::IsChromaKeyEnabled() const { //r800zz
+  return m.chromaKeyMode != 0; //r800zz
+} //r800zz
+
 void
 BrowserWorld::SetLockMode(LockMode lockMode) {
   ASSERT_ON_RENDER_THREAD();
@@ -1430,15 +1472,25 @@ BrowserWorld::AddWidget(int32_t aHandle, const WidgetPlacementPtr& aPlacement) {
   const float aspect = (float)textureWidth / (float)textureHeight;
   const float worldHeight = worldWidth / aspect;
 
+#if defined(PICOXR) || defined(OCULUSVR) //r800zz
+  // Keep the OpenXR composition layer, but let Chromium render into a
+  // TextureSurface first so that we can apply chroma key before copying into
+  // the layer swapchain.
+  const VRLayerSurface::SurfaceType widgetSurfaceType = VRLayerSurface::SurfaceType::FBO;
+#else
+  const VRLayerSurface::SurfaceType widgetSurfaceType = VRLayerSurface::SurfaceType::AndroidSurface;
+#endif
+
   WidgetPtr widget;
   if (aPlacement->cylinder && m.cylinderDensity > 0) {
-    VRLayerCylinderPtr layer = aPlacement->layer ? m.device->CreateLayerCylinder(textureWidth, textureHeight, VRLayerQuad::SurfaceType::AndroidSurface) : nullptr;
+
+    VRLayerCylinderPtr layer = aPlacement->layer ? m.device->CreateLayerCylinder(textureWidth, textureHeight, widgetSurfaceType) : nullptr;
     CylinderPtr cylinder = Cylinder::Create(m.create, layer);
     widget = Widget::Create(m.context, aHandle, aPlacement, textureWidth, textureHeight, (int32_t)worldWidth, (int32_t)worldHeight, cylinder);
   }
 
   if (!widget) {
-    VRLayerQuadPtr layer = aPlacement->layer ? m.device->CreateLayerQuad(textureWidth, textureHeight, VRLayerQuad::SurfaceType::AndroidSurface) : nullptr;
+    VRLayerQuadPtr layer = aPlacement->layer ? m.device->CreateLayerQuad(textureWidth, textureHeight, widgetSurfaceType) : nullptr;
     QuadPtr quad = Quad::Create(m.create, worldWidth, worldHeight, layer);
     widget = Widget::Create(m.context, aHandle, aPlacement, textureWidth, textureHeight, quad);
   }
@@ -1741,10 +1793,16 @@ BrowserWorld::ShowVRVideo(const int aWindowHandle, const int aVideoProjection) {
     m.vrVideo->Exit();
   }
   auto projection = static_cast<VRVideo::VRVideoProjection>(aVideoProjection);
+  m.flatToEquirectEnabled = projection == VRVideo::VRVideoProjection::VIDEO_PROJECTION_180_2D_TO_VR; //r800zz
+  m.vrVideoWidget = widget;
   m.vrVideo = VRVideo::Create(m.create, widget, projection, m.device);
+//r800zz , to comment for Skybox + green chroma key
+/*
   if (m.skybox && !isFrontFacingVRProjection(projection)) {
     m.skybox->SetVisible(false);
   }
+*/
+//
   if (m.fadeAnimation && !isFrontFacingVRProjection(projection)) {
     m.fadeAnimation->SetVisible(false);
   }
@@ -1756,6 +1814,7 @@ BrowserWorld::HideVRVideo() {
     m.vrVideo->Exit();
   }
   m.vrVideo = nullptr;
+  m.vrVideoWidget = nullptr;
   if (m.skybox) {
     m.skybox->SetVisible(true);
   }
@@ -1873,6 +1932,49 @@ void
 BrowserWorld::DrawWorld(device::Eye aEye) {
   ASSERT(m.device->ShouldRender());
   const CameraPtr camera = aEye == device::Eye::Left ? m.leftCamera : m.rightCamera;
+
+  // FBO composition layers are updated once per XR frame. The VR-video
+  // source widget alone receives chroma-key processing.
+  if (aEye == device::Eye::Left && m.layerBlitter) {
+//
+    if (m.chromaKeyMode == 6) { //r800zz
+      std::vector<uint8_t> aiMask; //r800zz
+      int aiMaskWidth = 0; //r800zz
+      int aiMaskHeight = 0; //r800zz
+    
+      {
+        std::lock_guard<std::mutex> lock(m.aiSegmentationMaskMutex); //r800zz
+        if (m.aiSegmentationMaskUpdated) { //r800zz
+          aiMask = m.aiSegmentationMask; //r800zz
+          aiMaskWidth = m.aiSegmentationMaskWidth; //r800zz
+          aiMaskHeight = m.aiSegmentationMaskHeight; //r800zz
+          m.aiSegmentationMaskUpdated = false; //r800zz
+        }
+      }
+    
+      if (!aiMask.empty()) { //r800zz
+        m.layerBlitter->SetAiSegmentationMask(
+            aiMask, aiMaskWidth, aiMaskHeight); //r800zz
+      }
+    }
+
+    for (const WidgetPtr& widget : m.widgets) {
+      const bool isVRVideoWidget = m.vrVideo && m.vrVideoWidget == widget; //r800zz
+      const bool isChromaKeyWindow =
+          m.chromaKeyWindowHandle >= 0 &&
+          static_cast<int>(widget->GetHandle()) == m.chromaKeyWindowHandle; //r800zz
+      const int chromaKeyMode =
+          isChromaKeyWindow ? m.chromaKeyMode : 0; //r800zz
+      const bool flatToEquirectEnabled = isVRVideoWidget && m.flatToEquirectEnabled; //r800zz
+      if (!widget->IsVisible() && !isVRVideoWidget) {
+        continue;
+      }
+      widget->DrawLayerSurface(m.layerBlitter, chromaKeyMode, flatToEquirectEnabled); //r800zz
+    }
+  }
+
+  // LayerBlitter changes the bound framebuffer and viewport. Bind the eye
+  // buffer afterwards so normal world drawing starts from the expected state.
   m.device->BindEye(aEye);
 
   // Draw skybox or passthrough layer.
@@ -1933,8 +2035,23 @@ void
 BrowserWorld::TickImmersive() {
   m.externalVR->SetCompositorEnabled(false);
   m.device->SetRenderMode(device::RenderMode::Immersive);
-  m.device->SetImmersiveBlendMode(m.externalVR->GetImmersiveBlendMode());
-  m.device->SetImmersiveXRSessionType(m.externalVR->GetImmersiveXRSessionType());
+
+  const auto immersiveBlendMode = m.externalVR->GetImmersiveBlendMode();
+  const auto immersiveXRSessionType = m.externalVR->GetImmersiveXRSessionType();
+  const int immersiveChromaKeyMode =
+    immersiveXRSessionType ==
+            DeviceDelegate::ImmersiveXRSessionType::VR
+        ? m.chromaKeyMode
+        : 0; //r800zz Exclude immersive-ar.
+
+  m.blitter->SetChromaKeyMode(immersiveChromaKeyMode); //r800zz
+
+  m.device->SetImmersiveBlendMode(
+    immersiveChromaKeyMode != 0
+        ? device::BlendMode::AlphaBlend
+        : immersiveBlendMode); //r800zz
+
+  m.device->SetImmersiveXRSessionType(immersiveXRSessionType);
 
   const bool supportsFrameAhead = m.device->SupportsFramePrediction(DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD);
   auto framePrediction = DeviceDelegate::FramePrediction::ONE_FRAME_AHEAD;
@@ -2086,17 +2203,18 @@ BrowserWorld::CreateSkyBox(const std::string& aBasePath, const std::string& aExt
     return;
   }
 #if defined(OCULUSVR) || defined(PICOXR) || defined(PFDMXR)
-  bool usesSRGB = true;
+  bool usesSRGB = false;
 #else
   bool usesSRGB = false;
 #endif
 
 #if defined(OCULUSVR) || defined(PFDMXR)
   // Meta Quest (after v69) does not support compressed textures for the cubemap.
-  const std::string extension = aExtension.empty() ? ".png" : aExtension;
+  //const std::string extension = aExtension.empty() ? ".png" : aExtension;
 #else
-  const std::string extension = aExtension.empty() ? ".ktx" : aExtension;
+  //const std::string extension = aExtension.empty() ? ".ktx" : aExtension;
 #endif
+  const std::string extension = ".png";
   GLenum glFormat;
   if (usesSRGB)
     glFormat = extension == ".ktx" ? GL_COMPRESSED_SRGB8_ETC2 : GL_SRGB8_ALPHA8;
@@ -2131,7 +2249,7 @@ void BrowserWorld::OnReorient() {
 
 #define JNI_METHOD(return_type, method_name) \
   JNIEXPORT return_type JNICALL              \
-    Java_com_igalia_wolvic_VRBrowserActivity_##method_name
+    Java_com_r800zz_r800zzbrowser_VRBrowserActivity_##method_name
 
 extern "C" {
 
@@ -2210,6 +2328,32 @@ JNI_METHOD(void, setTemporaryFilePath)
 JNI_METHOD(void, togglePassthroughNative)
 (JNIEnv*, jobject) {
   crow::BrowserWorld::Instance().TogglePassthrough();
+}
+
+JNI_METHOD(void, setChromaKeyModeNative)
+(JNIEnv*, jobject, jint aMode, jint aWindowHandle) { //r800zz
+  crow::BrowserWorld::Instance().SetChromaKeyMode(
+      static_cast<int>(aMode),
+      static_cast<int>(aWindowHandle)); //r800zz
+}
+
+JNI_METHOD(void, setAiSegmentationMaskNative)
+(JNIEnv* aEnv, jobject, jbyteArray aMask, jint aWidth, jint aHeight) { //r800zz
+  if (!aMask || aWidth <= 0 || aHeight <= 0) {
+    return;
+  }
+
+  const jsize length = aEnv->GetArrayLength(aMask);
+  std::vector<uint8_t> mask(length);
+
+  aEnv->GetByteArrayRegion(
+      aMask, 0, length,
+      reinterpret_cast<jbyte*>(mask.data()));
+
+  crow::BrowserWorld::Instance().SetAiSegmentationMask(
+      mask,
+      static_cast<int>(aWidth),
+      static_cast<int>(aHeight));
 }
 
 JNI_METHOD(void, setLockEnabledNative)

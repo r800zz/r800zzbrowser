@@ -1137,7 +1137,10 @@ DeviceDelegateOpenXR::StartFrame(const FramePrediction aPrediction) {
   if (m.immersiveDisplay) {
     // Setup capability caps for this frame
     device::CapabilityFlags caps =
-        device::Orientation | device::Present | device::InlineSession | device::ImmersiveVRSession;
+    device::Orientation | device::Present | device::InlineSession |
+    device::ImmersiveVRSession
+//r800zz
+ | device::ImmersiveARSession;
     if (location.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) {
       caps |= IsPositionTrackingSupported() ? device::Position : device::PositionEmulated;
     }
@@ -1756,6 +1759,16 @@ void DeviceDelegateOpenXR::SetImmersiveBlendMode(device::BlendMode mode) {
   m.immersiveBlendMode = toOpenXRBlendMode(mode);
   if (prevImmersiveBlendMode != m.immersiveBlendMode)
     UpdatePassthrough();
+}
+
+void DeviceDelegateOpenXR::SetImmersiveXRSessionType(
+    const ImmersiveXRSessionType aSessionType) {
+  if (mImmersiveXrSessionType == aSessionType) {
+    return;
+  }
+
+  mImmersiveXrSessionType = aSessionType;
+  UpdatePassthrough();
 }
 
 void DeviceDelegateOpenXR::SetHandTrackingEnabled(bool value) {

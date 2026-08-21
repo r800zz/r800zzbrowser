@@ -398,7 +398,7 @@ class OpenXRLayerEquirect;
 
 typedef std::shared_ptr<OpenXRLayerEquirect> OpenXRLayerEquirectPtr;
 
-class OpenXRLayerEquirect : public OpenXRLayerBase<VRLayerEquirectPtr, XrCompositionLayerEquirectKHR> {
+class OpenXRLayerEquirect : public OpenXRLayerBase<VRLayerEquirectPtr, XrCompositionLayerEquirect2KHR> {
 public:
   std::weak_ptr<OpenXRLayer> sourceLayer;
 

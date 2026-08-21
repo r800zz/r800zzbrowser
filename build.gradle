@@ -10,6 +10,7 @@ buildscript {
         // in the individual module build.gradle files
     }
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         maven { url 'https://developer.huawei.com/repo/' }
@@ -18,6 +19,7 @@ buildscript {
 
 allprojects {
     repositories {
+        mavenLocal()
         google()
         maven { url 'https://maven.mozilla.org/maven2' }
         maven { url 'https://developer.huawei.com/repo/' }

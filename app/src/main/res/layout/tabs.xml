@@ -14,7 +14,7 @@
         android:layout_marginTop="10dp"
         android:layout_marginBottom="10dp">
 
-        <com.igalia.wolvic.ui.views.UIButton
+        <com.r800zz.r800zzbrowser.ui.views.UIButton
             android:id="@+id/tabsBackButton"
             style="?attr/headerBarButtonStyle"
             android:padding="8dp"
@@ -36,12 +36,12 @@
             android:layout_height="match_parent"
             android:layout_weight="100" />
 
-        <com.igalia.wolvic.ui.views.UITextButton
+        <com.r800zz.r800zzbrowser.ui.views.UITextButton
             android:id="@+id/tabsSelectButton"
             style="@style/tabsButton"
             android:text="@string/tabs_select" />
 
-        <com.igalia.wolvic.ui.views.UITextButton
+        <com.r800zz.r800zzbrowser.ui.views.UITextButton
             android:id="@+id/tabsDoneButton"
             style="@style/tabsButton"
             android:visibility="gone"
@@ -80,36 +80,36 @@
             android:layout_height="match_parent"
             android:layout_weight="100" />
 
-        <com.igalia.wolvic.ui.views.UITextButton
+        <com.r800zz.r800zzbrowser.ui.views.UITextButton
             android:id="@+id/tabsCloseButton"
             style="@style/tabsButton"
             android:visibility="gone"
             android:text="@string/tabs_close_selected" />
 
-        <com.igalia.wolvic.ui.views.UITextButton
+        <com.r800zz.r800zzbrowser.ui.views.UITextButton
             android:id="@+id/tabsBookmarkButton"
             style="@style/tabsButton"
             android:visibility="gone"
             android:text="@string/tabs_bookmark_selected" />
 
-        <com.igalia.wolvic.ui.views.UITextButton
+        <com.r800zz.r800zzbrowser.ui.views.UITextButton
             android:id="@+id/tabsCloseAllButton"
             style="@style/tabsButton"
             android:text="@string/tabs_close_all" />
 
-        <com.igalia.wolvic.ui.views.UITextButton
+        <com.r800zz.r800zzbrowser.ui.views.UITextButton
             android:id="@+id/tabsSelectAllButton"
             style="@style/tabsButton"
             android:text="@string/tabs_select_all" />
 
-        <com.igalia.wolvic.ui.views.UITextButton
+        <com.r800zz.r800zzbrowser.ui.views.UITextButton
             android:id="@+id/tabsUnselectButton"
             style="@style/tabsButton"
             android:visibility="gone"
             android:text="@string/tabs_unselect" />
     </LinearLayout>
 
-    <com.igalia.wolvic.ui.views.CustomRecyclerView
+    <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
         android:id="@+id/tabsRecyclerView"
         style="@style/customRecyclerViewStyle"
         android:layout_width="match_parent"
@@ -122,6 +122,6 @@
         android:layout_marginTop="10dp"
         android:layout_marginBottom="10dp"
         android:fadingEdgeLength="50dp">
-    </com.igalia.wolvic.ui.views.CustomRecyclerView>
+    </com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView>
 
 </LinearLayout>

@@ -4,14 +4,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-        <import type="com.igalia.wolvic.utils.StringUtils"/>
+        <import type="com.r800zz.r800zzbrowser.utils.StringUtils"/>
         <variable
             name="item"
-            type="com.igalia.wolvic.ui.adapters.Bookmark" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.Bookmark" />
 
         <variable
             name="callback"
-            type="com.igalia.wolvic.ui.callbacks.BookmarkItemFolderCallback" />
+            type="com.r800zz.r800zzbrowser.ui.callbacks.BookmarkItemFolderCallback" />
     </data>
 
     <LinearLayout

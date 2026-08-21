@@ -1,5 +1,5 @@
 <resources>
-    <string name="bug_report_url" translatable="false">github.com/Igalia/wolvic/issues</string>
+    <string name="bug_report_url" translatable="false">https://www.youtube.com/@R800ZZ</string>
     <!-- You can test a local file using: "resource://android/assets/webvr/index.html" -->
     <string name="settings_key_homepage" translatable="false">settings_homepage</string>
     <string name="settings_key_crash" translatable="false">settings_crash</string>
@@ -50,7 +50,7 @@
     <string name="settings_key_crash_restart_count_timestamp" translatable="false">settings_key_crash_restart_count_timestamp</string>
     <string name="settings_key_keyboard_move" translatable="false">settings_key_keyboard_move</string>
     <string name="settings_key_pointer_mode" translatable="false">settings_key_pointer_mode</string>
-    <string name="private_browsing_support_url" translatable="false">https://wolvic.com/en/support/private-mode</string>
+    <string name="private_browsing_support_url" translatable="false">https://www.youtube.com/@R800ZZ</string>
     <string name="settings_key_browser_world_width" translatable="false">settings_browser_world_width</string>
     <string name="settings_key_browser_world_height" translatable="false">settings_browser_world_height</string>
     <string name="settings_key_notifications" translatable="false">settings_key_notifications</string>
@@ -93,11 +93,11 @@
     <string name="settings_key_custom_search_engines" translatable="false">settings_key_custom_search_engines</string>
     <string name="settings_key_eye_tracking_supported" translatable="false">settings_key_eye_tracking_supported</string>
     <string name="settings_key_tabs_location" translatable="false">settings_key_tabs_location</string>
-    <string name="environment_override_help_url" translatable="false">https://github.com/igalia/wolvic/wiki/Environments</string>
-    <string name="private_policy_url" translatable="false">https://wolvic.com/legal/privacy/</string>
-    <string name="private_report_url" translatable="false">https://www.igalia.com/privacy/&amp;url=%1$s</string>
-    <string name="terms_service_url" translatable="false">https://wolvic.com/legal/terms/</string>
-    <string name="help_url" translatable="false">https://wolvic.com/support/</string>
+    <string name="environment_override_help_url" translatable="false">https://vr180g.com</string>
+    <string name="private_policy_url" translatable="false">https://vr180g.com</string>
+    <string name="private_report_url" translatable="false">https://www.youtube.com/@R800ZZ</string>
+    <string name="terms_service_url" translatable="false">https://vr180g.com</string>
+    <string name="help_url" translatable="false">https://vr180g.com</string>
     <string name="sumo_language_voice_url" translatable="false">https://support.mozilla.org/kb/using-voice-search-firefox-reality</string>
     <string name="sumo_language_display_url" translatable="false">https://support.mozilla.org/kb/use-firefox-another-language?as=u&amp;utm_source=inproduct</string>
     <string name="sumo_language_content_url" translatable="false">https://support.mozilla.org/kb/choose-display-languages-multilingual-web-pages?as=u&amp;utm_source=inproduct</string>
@@ -113,7 +113,7 @@
     <string name="crash_dialog_learn_more_url" translatable="false">https://support.mozilla.org/kb/crash-reporting-firefox-reality</string>
     <string name="app_permission_name" translatable="false">CRASH_RECEIVER_PERMISSION</string>
     <string name="developer_options_by" translatable="false">x</string>
-    <string name="crash_app_name" translatable="false">Wolvic</string>
+    <string name="crash_app_name" translatable="false">r800zzbrowser</string>
     <string name="user_agent_override_file" translatable="false">userAgentOverride.json</string>
     <string name="about_blank" translatable="false">about:blank</string>
     <string name="about_private_browsing" translatable="false">about:privatebrowsing</string>
@@ -123,7 +123,7 @@
     <string name="keyboard_mode_change" translatable="false">ABC</string>
     <string name="keyboard_symbol" translatable="false">%&amp;=</string>
     <string name="ellipsis" translatable="false">…</string>
-    <string name="release_notes_url" translatable="false">https://wolvic.com/blog/release_%1$s</string>
+    <string name="release_notes_url" translatable="false">https://vr180g.com</string>
 
     <string name="pinyin_spacebar_selection" translatable="false">选定</string>
     <string name="pinyin_spacebar_space" translatable="false">空格</string>
@@ -234,14 +234,14 @@
     <string name="keyboard_nl_NL_popup_i" translatable="false">ìíiïîįī</string>
 
     <!-- Homepage link -->
-    <string name="home_page_url" translatable="false">https://wolvic.com/</string>
+    <string name="home_page_url" translatable="false">https://vr180g.com</string>
 
     <!-- Settings Survey link -->
-    <string name="feedback_link" translatable="false">https://wolvic.com/en/feedback/index.html?version=%1$s&amp;device=%2$d</string>
+    <string name="feedback_link" translatable="false">https://www.youtube.com/@R800ZZ</string>
 
     <!-- Phone UI links -->
     <string name="hvr_learn_more_url" translatable="false">https://consumer.huawei.com/cn/wearables/vr-glass/</string>
-    <string name="landing_page_url" translatable="false">https://wolvic.com/welcome/</string>
+    <string name="landing_page_url" translatable="false">https://vr180g.com</string>
 
     <!-- Shared preferences key to store the list of installed Web apps (JSON string) -->
     <string name="settings_key_web_apps_data" translatable="false">settings_key_web_apps_data</string>

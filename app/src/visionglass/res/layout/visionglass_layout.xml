@@ -5,7 +5,7 @@
 
         <variable
             name="viewModel"
-            type="com.igalia.wolvic.PhoneUIViewModel" />
+            type="com.r800zz.r800zzbrowser.PhoneUIViewModel" />
     </data>
 
 
@@ -67,7 +67,7 @@
                 app:visibleDimmed="@{viewModel.isPresentingImmersive || viewModel.isFullscreen}"
                 style="@style/HeadlockToggleButtonStyle" />
 
-            <com.igalia.wolvic.AlignDynamicButton
+            <com.r800zz.r800zzbrowser.AlignDynamicButton
                 android:id="@+id/realign_button"
                 app:layout_constraintStart_toEndOf="@id/headlock_toggle_button"
                 app:layout_constraintEnd_toStartOf="@id/voice_search_button"

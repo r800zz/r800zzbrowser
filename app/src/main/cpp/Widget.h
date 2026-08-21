@@ -30,6 +30,9 @@ typedef std::shared_ptr<Quad> QuadPtr;
 class Widget;
 typedef std::shared_ptr<Widget> WidgetPtr;
 
+class LayerBlitter;
+typedef std::shared_ptr<LayerBlitter> LayerBlitterPtr;
+
 class WidgetResizer;
 typedef std::shared_ptr<WidgetResizer> WidgetResizerPtr;
 
@@ -46,6 +49,10 @@ public:
   void ResetFirstDraw();
   const std::string& GetSurfaceTextureName() const;
   const vrb::TextureSurfacePtr GetSurfaceTexture() const;
+  bool UsesFBOLayer() const;
+  void DrawLayerSurface(const LayerBlitterPtr& aBlitter,
+                      int aChromaKeyMode,
+                      bool aFlatToEquirectEnabled); //r800zz
   void GetSurfaceTextureSize(int32_t& aWidth, int32_t& aHeight) const;
   void SetSurfaceTextureSize(int32_t aWidth, int32_t aHeight);
   void RecreateSurface();

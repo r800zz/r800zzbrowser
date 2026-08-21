@@ -1,0 +1,520 @@
+package com.r800zz.r800zzbrowser.ui.widgets.dialogs;
+
+import android.Manifest;
+import android.app.Activity;
+import android.app.Application;
+import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.drawable.ClipDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.method.ScrollingMovementMethod;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.databinding.DataBindingUtil;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import com.r800zz.r800zzbrowser.R;
+import com.r800zz.r800zzbrowser.VRBrowserActivity;
+import com.r800zz.r800zzbrowser.VRBrowserApplication;
+import com.r800zz.r800zzbrowser.browser.SettingsStore;
+import com.r800zz.r800zzbrowser.browser.api.WSession;
+import com.r800zz.r800zzbrowser.browser.engine.SessionStore;
+import com.r800zz.r800zzbrowser.databinding.VoiceSearchDialogBinding;
+import com.r800zz.r800zzbrowser.speech.SpeechRecognizer;
+import com.r800zz.r800zzbrowser.ui.widgets.WidgetManagerDelegate;
+import com.r800zz.r800zzbrowser.ui.widgets.WidgetPlacement;
+import com.r800zz.r800zzbrowser.utils.LocaleUtils;
+
+public class VoiceSearchWidget extends UIDialog implements Application.ActivityLifecycleCallbacks {
+
+    public enum State {
+        READY_TEXT_INPUT(R.string.voice_input_start),
+        READY_SEARCH_INPUT(R.string.voice_search_start),
+        ERROR_SPEECH(R.string.voice_search_try_again),
+        ERROR_NO_VOICE(R.string.voice_search_error),
+        ERROR_NETWORK(R.string.voice_search_server_error),
+        ERROR_SERVER(R.string.voice_search_server_error),
+        ERROR_TOO_MANY_REQUESTS(R.string.voice_search_server_error),
+        ERROR_LANGUAGE_NOT_SUPPORTED(R.string.voice_search_unsupported),
+        ERROR_PERMISSIONS(R.string.voice_search_permission_after_decline),
+        DOWNLOADING_MODEL(R.string.voice_download_model);
+
+        private final int mStringResId;
+
+        State(int stringResId) {
+            mStringResId = stringResId;
+        }
+
+        public int getStringResId() {
+            return mStringResId;
+        }
+    }
+
+    public interface VoiceSearchDelegate {
+        default void OnVoiceSearchResult(String transcription, float confidence) {};
+        default void OnPartialVoiceSearchResult(String transcription) {};
+        default void OnVoiceSearchError(@SpeechRecognizer.Callback.ErrorType int errorType) {};
+    }
+
+    private VoiceSearchDialogBinding mBinding;
+    private VoiceSearchDelegate mDelegate;
+    private State mInitialState = State.READY_SEARCH_INPUT;
+    private ClipDrawable mVoiceInputClipDrawable;
+    private VRBrowserApplication mApplication;
+    private boolean mIsSpeechRecognitionRunning = false;
+    private boolean mWasSpeechRecognitionRunning = false;
+    private SpeechRecognizer mCurrentSpeechRecognizer;
+    private boolean mIsDownloadingModel = false;
+    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+
+    public VoiceSearchWidget(Context aContext) {
+        super(aContext);
+        initialize(aContext);
+    }
+
+    public VoiceSearchWidget(Context aContext, AttributeSet aAttrs) {
+        super(aContext, aAttrs);
+        initialize(aContext);
+    }
+
+    public VoiceSearchWidget(Context aContext, AttributeSet aAttrs, int aDefStyle) {
+        super(aContext, aAttrs, aDefStyle);
+        initialize(aContext);
+    }
+
+    private void initialize(Context aContext) {
+        // AnimatedVectorDrawable doesn't work with a Hardware Accelerated canvas, we disable it for this view.
+        setIsHardwareAccelerationEnabled(false);
+
+        mApplication = (VRBrowserApplication)aContext.getApplicationContext();
+
+        updateUI();
+
+        mBinding.voiceSearchStart.setMovementMethod(new ScrollingMovementMethod());
+
+        mApplication.registerActivityLifecycleCallbacks(this);
+    }
+
+    public void updateUI() {
+        removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        // Inflate this data binding layout
+        mBinding = DataBindingUtil.inflate(inflater, R.layout.voice_search_dialog, this, true);
+        mBinding.setState(mInitialState);
+        mBinding.setLifecycleOwner((VRBrowserActivity)getContext());
+
+        Drawable mVoiceInputBackgroundDrawable = getResources().getDrawable(R.drawable.ic_voice_search_volume_input_black, getContext().getTheme());
+        mVoiceInputClipDrawable = new ClipDrawable(getContext().getDrawable(R.drawable.ic_voice_search_volume_input_clip), Gravity.START, ClipDrawable.HORIZONTAL);
+        Drawable[] layers = new Drawable[] {mVoiceInputBackgroundDrawable, mVoiceInputClipDrawable };
+        mBinding.voiceSearchAnimationListening.setImageDrawable(new LayerDrawable(layers));
+        mVoiceInputClipDrawable.setLevel(0);
+
+        mBinding.closeButton.setOnClickListener(view -> onDismiss());
+    }
+
+    public enum InputMode {SEARCH_INPUT, TEXT_INPUT}
+
+    public void setInputMode(InputMode inputMode) {
+        mInitialState = inputMode == InputMode.SEARCH_INPUT ? State.READY_SEARCH_INPUT : State.READY_TEXT_INPUT;
+        setState(mInitialState);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        updateUI();
+    }
+
+    public void setVoiceSearchDelegate(VoiceSearchDelegate delegate) {
+        mDelegate = delegate;
+    }
+
+    @Override
+    public void releaseWidget() {
+        mApplication.unregisterActivityLifecycleCallbacks(this);
+
+        if (mCurrentSpeechRecognizer != null) {
+            mCurrentSpeechRecognizer.stop();
+            mCurrentSpeechRecognizer = null;
+        }
+
+        mExecutor.shutdown();
+        super.releaseWidget();
+    }
+
+    @Override
+    protected void initializeWidgetPlacement(WidgetPlacement aPlacement) {
+        aPlacement.visible = false;
+        aPlacement.width =  WidgetPlacement.dpDimension(getContext(), R.dimen.prompt_dialog_width);
+        aPlacement.height = WidgetPlacement.dpDimension(getContext(), R.dimen.prompt_dialog_height);
+        aPlacement.anchorX = 0.5f;
+        aPlacement.anchorY = 0.5f;
+        aPlacement.parentAnchorX = 0.5f;
+        aPlacement.parentAnchorY = 0.0f;
+        aPlacement.translationY = WidgetPlacement.unitFromMeters(getContext(), R.dimen.settings_world_y) -
+                WidgetPlacement.unitFromMeters(getContext(), R.dimen.window_world_y);
+        updatePlacementTranslationZ();
+    }
+
+    @Override
+    public void updatePlacementTranslationZ() {
+        getPlacement().translationZ = WidgetPlacement.unitFromMeters(getContext(), R.dimen.tray_world_z) -
+                WidgetPlacement.getWindowWorldZMeters(getContext());
+    }
+
+    public void setPlacement(int aHandle) {
+        mWidgetPlacement.parentHandle = aHandle;
+    }
+
+    SpeechRecognizer.Callback mResultCallback = new SpeechRecognizer.Callback() {
+        @Override
+        public void onStartListening() {
+            // Handle when the api successfully opened the microphone and started listening
+            Log.d(LOGTAG, "===> START_LISTEN");
+            setState(mInitialState);
+        }
+
+        @Override
+        public void onMicActivity(int level) {
+            // Captures the activity from the microphone
+            Log.d(LOGTAG, "===> MIC_ACTIVITY");
+            mVoiceInputClipDrawable.setLevel(level);
+        }
+
+        @Override
+        public void onPartialResult(String transcription) {
+            // When a partial result is available
+            Log.d(LOGTAG, "===> PARTIAL_STT_RESULT");
+            if (mDelegate != null) {
+                mBinding.voiceSearchStart.setText(transcription);
+                mDelegate.OnPartialVoiceSearchResult(transcription);
+            }
+        }
+
+        @Override
+        public void onResult(String transcription, float confidence) {
+            // When the api finished processing and returned a hypothesis
+            Log.d(LOGTAG, "===> STT_RESULT");
+            if (mDelegate != null) {
+                mBinding.voiceSearchStart.setText(transcription);
+                mDelegate.OnVoiceSearchResult(transcription, confidence);
+            }
+            hide(KEEP_WIDGET);
+        }
+
+        @Override
+        public void onNoVoice() {
+            // Handle when the api didn't detect any voice
+            Log.d(LOGTAG, "===> NO_VOICE");
+            setState(State.ERROR_NO_VOICE);
+        }
+
+        @Override
+        public void onCanceled() {
+            // Handle when the voice recognition was canceled
+            Log.d(LOGTAG, "===> CANCELED");
+        }
+
+        @Override
+        public void onError(@ErrorType int errorType, @Nullable String error) {
+            Log.e(LOGTAG, "===> ERROR: " + error);
+            stopVoiceSearch();
+            setStateforError(errorType);
+            if (mDelegate != null) {
+                mDelegate.OnVoiceSearchError(errorType);
+            }
+        }
+    };
+
+    private void ensurePermissionsAndStartVoiceSearch() {
+        if (!mWidgetManager.isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
+            setState(State.ERROR_PERMISSIONS);
+            mWidgetManager.requestPermission(getContext().getString(R.string.voice_search_tooltip),
+                    Manifest.permission.RECORD_AUDIO,
+                    WidgetManagerDelegate.OriginatorType.APPLICATION,
+                    new WSession.PermissionDelegate.Callback() {
+
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "voice permissions callback";
+                        }
+
+                        @Override
+                        public void grant() {
+                            startVoiceSearch();
+                        }
+
+                        @Override
+                        public void reject() {
+                            setState(State.ERROR_PERMISSIONS);
+                            hide(KEEP_WIDGET);
+                            stopVoiceSearch();
+                        }
+                    });
+        } else {
+            startVoiceSearch();
+        }
+    }
+
+    private void startVoiceSearch() {
+        // Ensure that the recognizer is in the correct state.
+        if (mCurrentSpeechRecognizer != null && mCurrentSpeechRecognizer.isActive()) {
+            Log.w(LOGTAG, "Voice recognition was already active, ignoring.");
+            return;
+        }
+
+        setState(mInitialState);
+
+        String locale = LocaleUtils.getVoiceSearchLanguageId(getContext());
+        SpeechRecognizer recognizer = mApplication.getSpeechRecognizer();
+        if (recognizer != null) {
+            final String resolvedLocale = resolveLocale(locale, recognizer);
+            mExecutor.execute(() -> {
+                boolean downloaded = recognizer.isModelDownloaded(resolvedLocale);
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (downloaded) {
+                        startRecognition(resolvedLocale);
+                    } else {
+                        downloadModelAndStartRecognition(resolvedLocale, recognizer);
+                    }
+                });
+            });
+            return;
+        }
+
+        startRecognition(locale);
+    }
+
+    private String resolveLocale(String locale, SpeechRecognizer recognizer) {
+        if (!LocaleUtils.DEFAULT_LANGUAGE_ID.equals(locale)) {
+            return locale;
+        }
+        java.util.List<String> supported = recognizer.getSupportedLanguages();
+        String deviceLang = java.util.Locale.getDefault().getLanguage();
+        return supported.contains(deviceLang) ? deviceLang : (supported.isEmpty() ? "en" : supported.get(0));
+    }
+
+    private void downloadModelAndStartRecognition(String locale, SpeechRecognizer recognizer) {
+        if (mIsDownloadingModel) {
+            return;
+        }
+
+        mIsDownloadingModel = true;
+        setState(State.DOWNLOADING_MODEL);
+
+        recognizer.downloadModel(locale, new SpeechRecognizer.DownloadCallback() {
+            @Override
+            public void onProgress(int progress) {
+                Log.d(LOGTAG, "Model download progress: " + progress + "%");
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (mBinding != null && mBinding.voiceSearchStart != null) {
+                        String langName = LocaleUtils.getVoiceLanguageName(getContext(), locale);
+                        mBinding.voiceSearchStart.setText(
+                                getContext().getString(R.string.voice_download_progress, langName));
+                        mBinding.downloadProgress.setProgress(progress);
+                    }
+                });
+            }
+
+            @Override
+            public void onSuccess() {
+                Log.d(LOGTAG, "Model downloaded successfully");
+                mIsDownloadingModel = false;
+                new Handler(Looper.getMainLooper()).post(() -> startRecognition(locale));
+            }
+
+            @Override
+            public void onError(@NonNull String error) {
+                Log.e(LOGTAG, "Model download failed: " + error);
+                mIsDownloadingModel = false;
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (mBinding != null && mBinding.voiceSearchStart != null) {
+                        mBinding.voiceSearchStart.setText(
+                                getContext().getString(R.string.voice_download_failed, error));
+                    }
+                });
+            }
+        });
+    }
+
+    private void startRecognition(String locale) {
+        boolean storeData = SettingsStore.getInstance(getContext()).isSpeechDataCollectionEnabled();
+        if (SessionStore.get().getActiveSession().isPrivateMode()) {
+            storeData = false;
+        }
+
+        mCurrentSpeechRecognizer = mApplication.getSpeechRecognizer();
+        if (mCurrentSpeechRecognizer == null) {
+            Log.e(LOGTAG, "Speech recognizer is null");
+            return;
+        }
+
+        mIsSpeechRecognitionRunning = true;
+
+        SpeechRecognizer.Settings settings = new SpeechRecognizer.Settings();
+        settings.locale = locale;
+        settings.storeData = storeData;
+        settings.productTag = getContext().getString(R.string.voice_app_id);
+
+        mCurrentSpeechRecognizer.start(settings, mResultCallback);
+    }
+
+    public void stopVoiceSearch() {
+        if (mIsDownloadingModel) {
+            // Do not use mCurrentSpeechRecognizer as there might be none if we haven't started a recognition yet.
+            SpeechRecognizer recognizer = mApplication.getSpeechRecognizer();
+            if (recognizer != null) {
+                recognizer.cancelDownload();
+            }
+        }
+
+        if (mCurrentSpeechRecognizer != null) {
+            try {
+                mCurrentSpeechRecognizer.stop();
+            } catch (Exception e) {
+                Log.w(LOGTAG, "Error stopping voice search: " + e);
+            }
+        }
+
+        mIsSpeechRecognitionRunning = false;
+        mCurrentSpeechRecognizer = null;
+        mIsDownloadingModel = false;
+    }
+
+    @Override
+    public void show(@ShowFlags int aShowFlags) {
+        if (mApplication.getSpeechRecognizer() == null) {
+            Log.e(LOGTAG, "Speech recognizer not available");
+            return;
+        }
+
+        if (!mApplication.getSpeechRecognizer().shouldDisplayStoreDataPrompt() ||
+                SettingsStore.getInstance(getContext()).isSpeechDataCollectionEnabled() ||
+                SettingsStore.getInstance(getContext()).isSpeechDataCollectionReviewed()) {
+            mWidgetPlacement.parentHandle = mWidgetManager.getFocusedWindow().getHandle();
+            super.show(aShowFlags);
+
+            ensurePermissionsAndStartVoiceSearch();
+
+        } else {
+            mWidgetManager.getFocusedWindow().showDialog(
+                    getResources().getString(R.string.voice_samples_collect_data_dialog_title, getResources().getString(R.string.app_name)),
+                    R.string.voice_samples_collect_dialog_description2,
+                    new int[]{
+                            R.string.voice_samples_collect_dialog_do_not_allow,
+                            R.string.voice_samples_collect_dialog_allow},
+                    (index, isChecked) -> {
+                        SettingsStore.getInstance(getContext()).setSpeechDataCollectionReviewed(true);
+                        if (index == PromptDialogWidget.POSITIVE) {
+                            SettingsStore.getInstance(getContext()).setSpeechDataCollectionEnabled(true);
+                        }
+                        new Handler(Looper.getMainLooper()).post(() -> show(aShowFlags));
+                    },
+                    () -> mWidgetManager.openNewTabForeground(getResources().getString(R.string.private_policy_url)));
+        }
+    }
+
+    @Override
+    public void hide(@HideFlags int aHideFlags) {
+        super.hide(aHideFlags);
+        stopVoiceSearch();
+        setState(mInitialState);
+    }
+
+    private void setState(State state) {
+        if (mBinding == null)
+            return;
+
+        mBinding.setState(state);
+        mBinding.executePendingBindings();
+    }
+
+    private void setStateforError(@SpeechRecognizer.Callback.ErrorType int errorType) {
+        switch (errorType) {
+            case SpeechRecognizer.Callback.SPEECH_ERROR:
+                setState(State.ERROR_SPEECH);
+                break;
+            case SpeechRecognizer.Callback.ERROR_NETWORK:
+                setState(State.ERROR_NETWORK);
+                break;
+            case SpeechRecognizer.Callback.ERROR_SERVER:
+                setState(State.ERROR_SERVER);
+                break;
+            case SpeechRecognizer.Callback.ERROR_TOO_MANY_REQUESTS:
+                setState(State.ERROR_TOO_MANY_REQUESTS);
+                break;
+            case SpeechRecognizer.Callback.ERROR_LANGUAGE_NOT_SUPPORTED:
+                setState(State.ERROR_LANGUAGE_NOT_SUPPORTED);
+                break;
+            case SpeechRecognizer.Callback.ERROR_AUDIO_PERMISSION:
+                setState(State.ERROR_PERMISSIONS);
+                break;
+            case SpeechRecognizer.Callback.ERROR_MODEL_NOT_DOWNLOADED:
+                SpeechRecognizer recognizer = mApplication.getSpeechRecognizer();
+                if (recognizer != null) {
+                    String locale = LocaleUtils.getVoiceSearchLanguageId(getContext());
+                    downloadModelAndStartRecognition(locale, recognizer);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    // ActivityLifeCycle
+
+    @Override
+    public void onActivityCreated(Activity activity, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onActivityStarted(Activity activity) {
+
+    }
+
+    @Override
+    public void onActivityResumed(Activity activity) {
+        if (mWasSpeechRecognitionRunning) {
+            ensurePermissionsAndStartVoiceSearch();
+        }
+    }
+
+    @Override
+    public void onActivityPaused(Activity activity) {
+        mWasSpeechRecognitionRunning = mIsSpeechRecognitionRunning;
+        if (mIsSpeechRecognitionRunning) {
+            stopVoiceSearch();
+        }
+    }
+
+    @Override
+    public void onActivityStopped(Activity activity) {
+
+    }
+
+    @Override
+    public void onActivitySaveInstanceState(Activity activity, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onActivityDestroyed(Activity activity) {
+
+    }
+}

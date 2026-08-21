@@ -36,7 +36,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data
                     android:scheme="wolvic"
-                    android:host="com.igalia.wolvic" />
+                    android:host="com.r800zz.r800zzbrowser" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />

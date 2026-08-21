@@ -11,7 +11,7 @@
 
         <variable
             name="viewModel"
-            type="com.igalia.wolvic.ui.viewmodel.WindowViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.WindowViewModel" />
     </data>
 
     <LinearLayout
@@ -21,7 +21,7 @@
         android:orientation="horizontal"
         tools:layout_height="@dimen/horizontal_tabs_bar_height">
 
-        <com.igalia.wolvic.ui.views.UIButton
+        <com.r800zz.r800zzbrowser.ui.views.UIButton
             android:id="@+id/sync_tabs"
             android:layout_width="64dp"
             android:layout_height="match_parent"
@@ -37,7 +37,7 @@
             android:tooltipText="@string/fxa_sync"
             app:visibleGone="@{syncAccountEnabled}" />
 
-        <com.igalia.wolvic.ui.views.UIButton
+        <com.r800zz.r800zzbrowser.ui.views.UIButton
             android:id="@+id/add_tab"
             android:layout_width="64dp"
             android:layout_height="match_parent"
@@ -52,7 +52,7 @@
             android:tint="@color/rhino"
             android:tooltipText="@{viewModel.isPrivateSession ? @string/new_private_tab : @string/new_tab}" />
 
-        <com.igalia.wolvic.ui.views.CustomRecyclerView
+        <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
             android:id="@+id/tabsRecyclerView"
             style="@style/customRecyclerViewStyle"
             android:layout_width="0dp"

@@ -3,19 +3,19 @@
     <!-- Environments Options -->
     <string-array name="developer_options_environments" translatable="false">
         <item>@string/developer_options_env_void</item>
-        <item>Wolvic</item>
-        <item>Wolvic 1.0</item>
+        <item>r800zzbrowser</item>
+        <item>r800zzbrowser 1.0</item>
     </string-array>
 
     <string-array name="developer_options_environments_values" translatable="false">
         <item>void</item>
-        <item>wolvic</item>
+        <item>r800zzbrowser</item>
         <item>cyberpunk</item>
     </string-array>
 
     <array name="developer_options_environments_images" translatable="false">
         <item>@color/black</item>
-        <item>@drawable/environment_wolvic</item>
+        <item>@drawable/environment_r800zzbrowser</item>
         <item>@drawable/environment_cyberpunk</item>
     </array>
 
@@ -104,7 +104,7 @@
     <!-- Homepage Setting Options -->
     <string-array name="developer_options_homepage" translatable="false">
         <item>@string/developer_options_homepage_new_tab</item>
-        <item>@string/developer_options_homepage_wolvic</item>
+        <item>@string/developer_options_homepage_r800zzbrowser</item>
         <item>@string/developer_options_homepage_other</item>
     </string-array>
 

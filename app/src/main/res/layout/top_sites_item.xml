@@ -11,7 +11,7 @@
 
         <variable
             name="listener"
-            type="com.igalia.wolvic.browser.components.TopSitesAdapter.ClickListener" />
+            type="com.r800zz.r800zzbrowser.browser.components.TopSitesAdapter.ClickListener" />
     </data>
 
     <androidx.cardview.widget.CardView
@@ -65,7 +65,7 @@
                 android:textSize="@dimen/top_site_item_title_text_size"
                 tools:text="Web App Name" />
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/remove_button"
                 android:layout_width="24dp"
                 android:layout_height="24dp"

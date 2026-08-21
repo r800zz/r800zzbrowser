@@ -12,7 +12,7 @@
 
         <variable
             name="callback"
-            type="com.igalia.wolvic.ui.callbacks.HistoryItemCallback" />
+            type="com.r800zz.r800zzbrowser.ui.callbacks.HistoryItemCallback" />
 
         <variable
             name="isHovered"

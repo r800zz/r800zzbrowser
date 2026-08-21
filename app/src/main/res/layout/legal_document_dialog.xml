@@ -12,7 +12,7 @@
         android:paddingEnd="30dp"
         android:paddingBottom="30dp">
 
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/scrollbar"
             style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
@@ -25,7 +25,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
         <Button
             android:id="@+id/declineButton"

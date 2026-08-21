@@ -5,7 +5,7 @@
     <data>
         <variable
             name="item"
-            type="com.igalia.wolvic.ui.adapters.Bookmark" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.Bookmark" />
 
         <variable
             name="level"

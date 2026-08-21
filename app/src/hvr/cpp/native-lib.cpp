@@ -24,7 +24,7 @@
 
 #define JNI_METHOD(return_type, method_name) \
   JNIEXPORT return_type JNICALL              \
-    Java_com_igalia_wolvic_PlatformActivity_##method_name
+    Java_com_r800zz_r800zzbrowser_PlatformActivity_##method_name
 
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "nativeLib", __VA_ARGS__)
 

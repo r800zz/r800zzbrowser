@@ -10,7 +10,7 @@
         android:paddingStart="30dp"
         android:paddingEnd="30dp">
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsHeader
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsHeader
             android:id="@+id/header_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -46,7 +46,7 @@
                     android:text="@string/language_options_preferred_languages"
                     tools:text="@string/language_options_preferred_languages" />
 
-                <com.igalia.wolvic.ui.views.CustomRecyclerView
+                <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
                     android:id="@+id/preferred_list"
                     style="@style/customRecyclerViewStyle"
                     android:paddingEnd="15dp"
@@ -70,7 +70,7 @@
                     android:gravity="center_vertical"
                     android:text="@string/language_options_available_languages"
                     tools:text="@string/language_options_available_languages" />
-                <com.igalia.wolvic.ui.views.CustomRecyclerView
+                <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
                     android:id="@+id/available_list"
                     style="@style/customRecyclerViewStyle"
                     android:paddingEnd="15dp"
@@ -81,7 +81,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsFooter
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsFooter
             android:id="@+id/footer_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

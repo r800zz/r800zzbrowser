@@ -4,6 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "Widget.h"
+#include "LayerBlitter.h"
 #include "Cylinder.h"
 #include "Quad.h"
 #include "VRLayer.h"
@@ -98,38 +99,55 @@ struct Widget::State {
   }
 
   void UpdateSurface(const int32_t aTextureWidth, const int32_t aTextureHeight) {
-    VRLayerPtr layer = GetLayer();
-    if (layer) {
+    VRLayerSurfacePtr layer = GetLayer();
+
+    if (layer && layer->GetSurfaceType() == VRLayerSurface::SurfaceType::AndroidSurface) {
       layer->SetSurfaceChangedDelegate([=](const VRLayer& aLayer, VRLayer::SurfaceChange aChange, const std::function<void()>& aCallback) {
-        const VRLayerQuad& layerQuad = static_cast<const VRLayerQuad&>(aLayer);
-        VRBrowser::DispatchCreateWidgetLayer((jint)handle, layerQuad.GetSurface(), layerQuad.GetWidth(), layerQuad.GetHeight(), aCallback);
+        const VRLayerSurface& layerSurface = static_cast<const VRLayerSurface&>(aLayer);
+        VRBrowser::DispatchCreateWidgetLayer((jint)handle, layerSurface.GetSurface(), layerSurface.GetWidth(), layerSurface.GetHeight(), aCallback);
       });
-    } else {
-      if (!surface) {
-        vrb::RenderContextPtr render = context.lock();
-        surface = vrb::TextureSurface::Create(render, name);
-      }
+      return;
+    }
 
-      vrb::Color tintColor = placement->GetTintColor();
-      std::string customFragment;
-      if (!placement->composited && placement->GetClearColor().Alpha() > 0.0f) {
-        customFragment =
+    // A normal scene-graph widget and an FBO composition-layer widget both
+    // receive Chromium output through a TextureSurface. For an FBO layer the
+    // TextureSurface is copied into the OpenXR swapchain every frame.
+    if (!surface) {
+      vrb::RenderContextPtr render = context.lock();
+      surface = vrb::TextureSurface::Create(render, name);
+    }
+
+    if (layer) {
+      // FBO layers have no Android Surface to send to Chromium. The
+      // TextureSurface observer handles DispatchCreateWidget(), while this
+      // callback only completes OpenXR layer initialization.
+      layer->SetSurfaceChangedDelegate([=](const VRLayer&, VRLayer::SurfaceChange, const std::function<void()>& aCallback) {
+        if (aCallback) {
+          aCallback();
+        }
+      });
+      return;
+    }
+
+    vrb::Color tintColor = placement->GetTintColor();
+    std::string customFragment;
+    if (!placement->composited && placement->GetClearColor().Alpha() > 0.0f) {
+      customFragment =
 #include "shaders/clear_color.fs"
-        ;
-        tintColor = placement->GetClearColor();
-      }
+      ;
+      tintColor = placement->GetClearColor();
+    }
 
-      if (quad) {
-        quad->SetTexture(surface, aTextureWidth, aTextureHeight);
-        quad->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
-        quad->GetRenderState()->SetTintColor(tintColor);
-        quad->UpdateProgram(customFragment);
-      } else if (cylinder) {
-        cylinder->SetTexture(surface, aTextureWidth, aTextureHeight);
-        cylinder->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
-        cylinder->GetRenderState()->SetTintColor(tintColor);
-        cylinder->UpdateProgram(customFragment);
-      }
+    if (quad) {
+      quad->SetTexture(surface, aTextureWidth, aTextureHeight);
+      quad->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
+      quad->GetRenderState()->SetTintColor(tintColor);
+      quad->UpdateProgram(customFragment);
+    } else if (cylinder) {
+      cylinder->SetTexture(surface, aTextureWidth, aTextureHeight);
+      cylinder->SetMaterial(vrb::Color(0.4f, 0.4f, 0.4f), vrb::Color(1.0f, 1.0f, 1.0f), vrb::Color(0.0f, 0.0f, 0.0f), 0.0f);
+      cylinder->GetRenderState()->SetTintColor(tintColor);
+      cylinder->UpdateProgram(customFragment);
     }
   }
 
@@ -269,6 +287,22 @@ Widget::GetSurfaceTextureName() const {
 const vrb::TextureSurfacePtr
 Widget::GetSurfaceTexture() const {
   return m.surface;
+}
+
+bool
+Widget::UsesFBOLayer() const {
+  VRLayerSurfacePtr layer = GetLayer();
+  return layer && layer->GetSurfaceType() == VRLayerSurface::SurfaceType::FBO;
+}
+
+void
+Widget::DrawLayerSurface(const LayerBlitterPtr& aBlitter,
+                         int aChromaKeyMode,
+                         bool aFlatToEquirectEnabled) { //r800zz
+  if (!aBlitter || !UsesFBOLayer() || !m.surface) {
+    return;
+  }
+  aBlitter->Draw(m.surface, GetLayer(), aChromaKeyMode, aFlatToEquirectEnabled); //r800zz
 }
 
 void
@@ -492,7 +526,12 @@ Widget::SetPlacement(const WidgetPlacementPtr& aPlacement) {
     layer->SetName(aPlacement->name);
     layer->SetClearColor(aPlacement->clearColor);
     layer->SetTintColor(aPlacement->tintColor);
-    layer->SetComposited(aPlacement->composited);
+    // An FBO layer is populated by Wolvic every frame, not by an Android
+    // Surface first-composite callback. Keep it eligible for submission.
+    layer->SetComposited(
+        layer->GetSurfaceType() == VRLayerSurface::SurfaceType::FBO
+            ? true
+            : aPlacement->composited);
   } else if (m.quad && aPlacement->composited) {
     m.quad->SetTintColor(aPlacement->GetTintColor());
   } else if (m.cylinder && aPlacement->composited) {

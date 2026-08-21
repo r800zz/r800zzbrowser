@@ -4,10 +4,10 @@
     <data>
         <variable
             name="viewmodel"
-            type="com.igalia.wolvic.ui.viewmodel.WindowViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.WindowViewModel" />
         <variable
             name="settingsmodel"
-            type="com.igalia.wolvic.ui.viewmodel.SettingsViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.SettingsViewModel" />
     </data>
     <FrameLayout
         android:layout_width="match_parent"

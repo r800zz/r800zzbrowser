@@ -9,7 +9,7 @@ using namespace crow;
 
 #define JNI_METHOD(return_type, method_name) \
   JNIEXPORT return_type JNICALL              \
-    Java_com_igalia_wolvic_PlatformActivity_##method_name
+    Java_com_r800zz_r800zzbrowser_PlatformActivity_##method_name
 
 namespace {
     struct AppContext {

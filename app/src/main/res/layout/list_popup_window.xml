@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:layout_width="match_parent">
 
-    <com.igalia.wolvic.ui.views.CustomListView
+    <com.r800zz.r800zzbrowser.ui.views.CustomListView
         android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

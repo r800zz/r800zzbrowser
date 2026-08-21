@@ -1,0 +1,816 @@
+package com.r800zz.r800zzbrowser.downloads;
+
+import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+import android.webkit.MimeTypeMap;
+import android.webkit.URLUtil;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.r800zz.r800zzbrowser.R;
+import com.r800zz.r800zzbrowser.VRBrowserApplication;
+import com.r800zz.r800zzbrowser.utils.StringUtils;
+import com.r800zz.r800zzbrowser.utils.UrlUtils;
+
+import java.io.File;
+import java.io.BufferedInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+public class DownloadsManager {
+
+    private static final String LOGTAG = DownloadsManager.class.getSimpleName();
+
+    private static final int REFRESH_INTERVAL = 100;
+
+    // r800zz: Use short HTTP Range requests for large files because some servers terminate long transfers.
+    private static final long RANGE_DOWNLOAD_MIN_SIZE = 1024L * 1024L;
+    private static final long RANGE_CHUNK_SIZE = 1024L * 1024L;
+    private static final int RANGE_MAX_RETRIES = 5;
+    private static final int RANGE_CONNECT_TIMEOUT_MS = 30000;
+    private static final int RANGE_READ_TIMEOUT_MS = 30000;
+
+    public interface DownloadsListener {
+        default void onDownloadsUpdate(@NonNull List<Download> downloads) {}
+        default void onDownloadCompleted(@NonNull Download download) {}
+        default void onDownloadError(@NonNull String error, @NonNull String file) {}
+    }
+
+    private Handler mMainHandler;
+    private Context mContext;
+    private List<DownloadsListener> mListeners;
+    private DownloadManager mDownloadManager;
+    private ScheduledThreadPoolExecutor mExecutor;
+    private ScheduledFuture<?> mFuture;
+    private Executor mDiskExecutor;
+    private ExecutorService mRangeDownloadExecutor;
+
+    // r800zz: Active custom downloads are exposed through the existing downloads UI.
+    private final Object mRangeDownloadsLock = new Object();
+    private final List<RangeDownloadState> mRangeDownloads = new ArrayList<>();
+    private long mNextRangeDownloadId = -1L;
+
+    public DownloadsManager(@NonNull Context context) {
+        mMainHandler = new Handler(Looper.getMainLooper());
+        mContext = context;
+        mListeners = new ArrayList<>();
+        mDownloadManager = (DownloadManager) mContext.getSystemService(Context.DOWNLOAD_SERVICE);
+        mExecutor = new ScheduledThreadPoolExecutor(1);
+        mDiskExecutor = ((VRBrowserApplication) mContext.getApplicationContext()).getExecutors().diskIO();
+        mRangeDownloadExecutor = Executors.newFixedThreadPool(2);
+    }
+
+    private void removeDownloadOnDiskIO(long id) {
+        mDiskExecutor.execute(() -> { mDownloadManager.remove(id); });
+    }
+
+    public void init() {
+        IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            mContext.registerReceiver(mDownloadReceiver, filter, null, mMainHandler, Context.RECEIVER_EXPORTED);
+        } else {
+            mContext.registerReceiver(mDownloadReceiver, filter, null, mMainHandler);
+        }
+        List<Download> downloads = getDownloads();
+        downloads.forEach(download -> {
+            File downloadedFile = download.getOutputFile();
+            if (mDownloadManager != null && (downloadedFile == null || !downloadedFile.exists())) {
+                removeDownloadOnDiskIO(download.getId());
+            }
+        });
+    }
+
+    public void end() {
+        mContext.unregisterReceiver(mDownloadReceiver);
+    }
+
+    public void addListener(@NonNull DownloadsListener listener) {
+        mListeners.add(listener);
+        if (mListeners.size() == 1) {
+            scheduleUpdates();
+        }
+    }
+
+    public void removeListener(@NonNull DownloadsListener listener) {
+        mListeners.remove(listener);
+        if (mListeners.size() == 0) {
+            stopUpdates();
+        }
+    }
+
+    private void scheduleUpdates() {
+        if (mFuture != null) {
+            // Already scheduled
+            return;
+        }
+        mFuture = mExecutor.scheduleWithFixedDelay(mDownloadUpdateTask, 0, REFRESH_INTERVAL, TimeUnit.MILLISECONDS);
+    }
+
+    private void stopUpdates() {
+        if (mFuture != null) {
+            mFuture.cancel(true);
+            mFuture = null;
+        }
+    }
+
+    public void startDownload(@NonNull DownloadJob job) {
+        if (UrlUtils.isBlobUri(job.getUri())) {
+            downloadBlobUri(job);
+            return;
+        }
+
+        if (!URLUtil.isHttpUrl(job.getUri()) && !URLUtil.isHttpsUrl(job.getUri())) {
+            notifyDownloadError(mContext.getString(R.string.download_error_protocol), job.getFilename());
+            return;
+        }
+
+        // r800zz: Large downloads use independent 1 MiB HTTP Range requests.
+        if (job.getContentLength() <= 0L
+                || job.getContentLength() >= RANGE_DOWNLOAD_MIN_SIZE) {
+            startRangeDownload(job);
+            return;
+        }
+
+        startSystemDownload(job);
+    }
+
+    private void startSystemDownload(@NonNull DownloadJob job) {
+        Uri url = Uri.parse(job.getUri());
+        DownloadManager.Request request = new DownloadManager.Request(url);
+        request.setTitle(job.getTitle());
+        request.setDescription(job.getDescription());
+        request.setMimeType(job.getContentType());
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            request.setVisibleInDownloadsUi(false);
+        }
+
+        if (job.getOutputPath() == null) {
+            try {
+                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, job.getFilename());
+            } catch (IllegalStateException e) {
+                e.printStackTrace();
+                notifyDownloadError(mContext.getString(R.string.download_error_output), job.getFilename());
+                return;
+            }
+        } else {
+            request.setDestinationUri(Uri.parse("file://" + job.getOutputPath()));
+        }
+
+        if (mDownloadManager != null) {
+            try {
+                mDownloadManager.enqueue(request);
+            } catch (SecurityException e) {
+                e.printStackTrace();
+                notifyDownloadError(mContext.getString(R.string.download_error_output), job.getFilename());
+                return;
+            }
+            scheduleUpdates();
+        }
+    }
+
+    private void startRangeDownload(@NonNull DownloadJob job) {
+        RangeDownloadState state = new RangeDownloadState(nextRangeDownloadId(), job);
+        addRangeDownload(state);
+        scheduleUpdates();
+        notifyDownloadsUpdate();
+
+        mRangeDownloadExecutor.execute(() -> {
+            File temporaryFile = null;
+            try {
+                if (mDownloadManager == null) {
+                    throw new IOException("Android DownloadManager is unavailable");
+                }
+
+                state.status = Download.RUNNING;
+                state.lastModified = System.currentTimeMillis();
+
+                File outputFile = createRangeDownloadOutputFile(job);
+                state.outputFile = outputFile;
+                temporaryFile = new File(outputFile.getAbsolutePath() + ".part");
+                state.temporaryFile = temporaryFile;
+                if (temporaryFile.exists() && !temporaryFile.delete()) {
+                    throw new IOException("Cannot remove old partial file");
+                }
+
+                long downloadedSize = downloadByRanges(job, temporaryFile, state);
+                throwIfRangeDownloadCancelled(state);
+
+                if (outputFile.exists() && !outputFile.delete()) {
+                    throw new IOException("Cannot replace existing output file");
+                }
+                if (!temporaryFile.renameTo(outputFile)) {
+                    throw new IOException("Cannot finalize downloaded file");
+                }
+                state.temporaryFile = null;
+
+                String mimeType = job.getContentType();
+                if (StringUtils.isEmpty(mimeType)) {
+                    mimeType = UrlUtils.getMimeTypeFromUrl(outputFile.getPath());
+                }
+                if (StringUtils.isEmpty(mimeType)) {
+                    mimeType = "application/octet-stream";
+                }
+
+                // TODO: Deprecated addCompletedDownload(...), see https://github.com/r800zz/r800zzbrowser/issues/798
+                long downloadId = mDownloadManager.addCompletedDownload(
+                        outputFile.getName(),
+                        job.getDescription(),
+                        true,
+                        mimeType,
+                        outputFile.getPath(),
+                        downloadedSize,
+                        true,
+                        Uri.parse(job.getUri()),
+                        null);
+
+                removeRangeDownload(state);
+                mMainHandler.post(() -> notifyDownloadCompleted(downloadId));
+            } catch (RangeNotSupportedException e) {
+                deletePartialFile(temporaryFile);
+                removeRangeDownload(state);
+                Log.w(LOGTAG, "HTTP Range is not supported; falling back to Android DownloadManager: "
+                        + job.getUri());
+                mMainHandler.post(() -> startSystemDownload(job));
+            } catch (RangeDownloadCancelledException e) {
+                deletePartialFile(temporaryFile);
+                removeRangeDownload(state);
+                notifyDownloadsUpdate();
+            } catch (Exception e) {
+                deletePartialFile(temporaryFile);
+                state.status = Download.FAILED;
+                state.reason = e.getMessage() == null
+                        ? e.getClass().getSimpleName() : e.getMessage();
+                state.lastModified = System.currentTimeMillis();
+                Log.e(LOGTAG, "Range download failed for " + job.getUri(), e);
+                notifyDownloadsUpdate();
+                mMainHandler.post(() -> notifyDownloadError(
+                        "Range download failed: " + state.reason + ", URI: ", job.getUri()));
+            }
+        });
+    }
+
+    @NonNull
+    private File createRangeDownloadOutputFile(@NonNull DownloadJob job) throws IOException {
+        if (job.getOutputPath() != null) {
+            File outputFile = new File(job.getOutputPath());
+            File parent = outputFile.getParentFile();
+            if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                throw new IOException("Cannot create output directory");
+            }
+            return outputFile;
+        }
+
+        File directory = new File(
+                Environment.getExternalStorageDirectory(), Environment.DIRECTORY_DOWNLOADS);
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw new IOException("Cannot create Downloads directory");
+        }
+
+        String filename = job.getFilename();
+        if (StringUtils.isEmpty(filename)) {
+            filename = "download";
+        }
+
+        int dot = filename.lastIndexOf('.');
+        String base = dot > 0 ? filename.substring(0, dot) : filename;
+        String extension = dot > 0 ? filename.substring(dot) : "";
+
+        File outputFile = new File(directory, filename);
+        int index = 1;
+        while (outputFile.exists() || new File(outputFile.getAbsolutePath() + ".part").exists()) {
+            outputFile = new File(directory, base + "-" + index + extension);
+            index++;
+        }
+        return outputFile;
+    }
+
+    private long downloadByRanges(
+            @NonNull DownloadJob job,
+            @NonNull File temporaryFile,
+            @NonNull RangeDownloadState state)
+            throws IOException, RangeNotSupportedException, RangeDownloadCancelledException {
+        URL url = new URL(job.getUri());
+        long[] totalSize = new long[] { job.getContentLength() };
+        long position = 0L;
+
+        if (totalSize[0] > 0L) {
+            state.totalSize = totalSize[0];
+        }
+
+        try (RandomAccessFile output = new RandomAccessFile(temporaryFile, "rw")) {
+            output.setLength(0L);
+
+            while (totalSize[0] <= 0L || position < totalSize[0]) {
+                throwIfRangeDownloadCancelled(state);
+
+                long requestedEnd = position + RANGE_CHUNK_SIZE - 1L;
+                if (totalSize[0] > 0L) {
+                    requestedEnd = Math.min(requestedEnd, totalSize[0] - 1L);
+                }
+
+                int retries = 0;
+                while (position <= requestedEnd
+                        && (totalSize[0] <= 0L || position < totalSize[0])) {
+                    throwIfRangeDownloadCancelled(state);
+                    try {
+                        long written = downloadRangePart(
+                                url, output, position, requestedEnd, totalSize, state);
+                        if (written <= 0L) {
+                            throw new IOException("Server returned no data");
+                        }
+                        position += written;
+                        state.downloadedSize = position;
+                        state.totalSize = totalSize[0];
+                        state.lastModified = System.currentTimeMillis();
+                        retries = 0;
+                    } catch (RangeNotSupportedException | RangeDownloadCancelledException e) {
+                        throw e;
+                    } catch (IOException e) {
+                        state.downloadedSize = position;
+                        retries++;
+                        if (retries >= RANGE_MAX_RETRIES) {
+                            throw new IOException(
+                                    "Failed near byte " + position + " after " + retries + " attempts", e);
+                        }
+                        Log.w(LOGTAG, "Retrying range at byte " + position
+                                + " (attempt " + (retries + 1) + ")", e);
+                        try {
+                            Thread.sleep(500L * retries);
+                        } catch (InterruptedException interrupted) {
+                            Thread.currentThread().interrupt();
+                            throw new RangeDownloadCancelledException();
+                        }
+                    }
+                }
+
+                Log.i(LOGTAG, "Range download progress: " + position + "/" + totalSize[0]
+                        + " bytes for " + job.getFilename());
+            }
+
+            if (totalSize[0] <= 0L) {
+                totalSize[0] = position;
+            }
+            if (position != totalSize[0]) {
+                throw new IOException(
+                        "Downloaded size mismatch: " + position + "/" + totalSize[0]);
+            }
+            output.setLength(totalSize[0]);
+        }
+
+        state.downloadedSize = totalSize[0];
+        state.totalSize = totalSize[0];
+        state.lastModified = System.currentTimeMillis();
+        return totalSize[0];
+    }
+
+    private long downloadRangePart(
+            @NonNull URL url,
+            @NonNull RandomAccessFile output,
+            long requestedStart,
+            long requestedEnd,
+            @NonNull long[] totalSize,
+            @NonNull RangeDownloadState state)
+            throws IOException, RangeNotSupportedException, RangeDownloadCancelledException {
+        throwIfRangeDownloadCancelled(state);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setConnectTimeout(RANGE_CONNECT_TIMEOUT_MS);
+        connection.setReadTimeout(RANGE_READ_TIMEOUT_MS);
+        connection.setInstanceFollowRedirects(true);
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty(
+                "Range", "bytes=" + requestedStart + "-" + requestedEnd);
+        connection.setRequestProperty("Accept-Encoding", "identity");
+
+        String userAgent = System.getProperty("http.agent");
+        if (!StringUtils.isEmpty(userAgent)) {
+            connection.setRequestProperty("User-Agent", userAgent);
+        }
+
+        try {
+            int responseCode = connection.getResponseCode();
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                throw new RangeNotSupportedException();
+            }
+            if (responseCode != HttpURLConnection.HTTP_PARTIAL) {
+                throw new IOException("HTTP " + responseCode);
+            }
+
+            long[] contentRange = parseContentRange(connection.getHeaderField("Content-Range"));
+            if (contentRange[0] != requestedStart) {
+                throw new IOException(
+                        "Unexpected Content-Range start: " + contentRange[0]
+                                + " instead of " + requestedStart);
+            }
+            if (contentRange[2] > 0L) {
+                if (totalSize[0] > 0L && totalSize[0] != contentRange[2]) {
+                    throw new IOException(
+                            "File size changed: " + totalSize[0] + " -> " + contentRange[2]);
+                }
+                totalSize[0] = contentRange[2];
+                state.totalSize = contentRange[2];
+            }
+
+            long responseEnd = Math.min(contentRange[1], requestedEnd);
+            long remaining = responseEnd - requestedStart + 1L;
+            if (remaining <= 0L) {
+                throw new IOException("Invalid Content-Range");
+            }
+
+            output.seek(requestedStart);
+            long written = 0L;
+            byte[] buffer = new byte[8192];
+            try (InputStream input = new BufferedInputStream(connection.getInputStream())) {
+                while (written < remaining) {
+                    throwIfRangeDownloadCancelled(state);
+                    int maximumRead = (int) Math.min(buffer.length, remaining - written);
+                    int count = input.read(buffer, 0, maximumRead);
+                    if (count < 0) {
+                        break;
+                    }
+                    if (count == 0) {
+                        continue;
+                    }
+                    output.write(buffer, 0, count);
+                    written += count;
+                    state.downloadedSize = requestedStart + written;
+                    state.lastModified = System.currentTimeMillis();
+                }
+            }
+            return written;
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    @NonNull
+    private long[] parseContentRange(@Nullable String header) throws IOException {
+        if (header == null || !header.startsWith("bytes ")) {
+            throw new IOException("Missing Content-Range header");
+        }
+
+        String value = header.substring("bytes ".length()).trim();
+        int dash = value.indexOf('-');
+        int slash = value.indexOf('/');
+        if (dash <= 0 || slash <= dash + 1) {
+            throw new IOException("Invalid Content-Range header: " + header);
+        }
+
+        try {
+            long start = Long.parseLong(value.substring(0, dash));
+            long end = Long.parseLong(value.substring(dash + 1, slash));
+            String totalValue = value.substring(slash + 1);
+            long total = "*".equals(totalValue) ? -1L : Long.parseLong(totalValue);
+            return new long[] { start, end, total };
+        } catch (NumberFormatException e) {
+            throw new IOException("Invalid Content-Range header: " + header, e);
+        }
+    }
+
+    private long nextRangeDownloadId() {
+        synchronized (mRangeDownloadsLock) {
+            return mNextRangeDownloadId--;
+        }
+    }
+
+    private void addRangeDownload(@NonNull RangeDownloadState state) {
+        synchronized (mRangeDownloadsLock) {
+            mRangeDownloads.add(state);
+        }
+    }
+
+    private void removeRangeDownload(@NonNull RangeDownloadState state) {
+        synchronized (mRangeDownloadsLock) {
+            mRangeDownloads.remove(state);
+        }
+    }
+
+    @Nullable
+    private RangeDownloadState findRangeDownload(long id) {
+        synchronized (mRangeDownloadsLock) {
+            for (RangeDownloadState state : mRangeDownloads) {
+                if (state.id == id) {
+                    return state;
+                }
+            }
+        }
+        return null;
+    }
+
+    @NonNull
+    private List<Download> getRangeDownloadsSnapshot() {
+        List<Download> downloads = new ArrayList<>();
+        synchronized (mRangeDownloadsLock) {
+            for (RangeDownloadState state : mRangeDownloads) {
+                downloads.add(state.toDownload());
+            }
+        }
+        return downloads;
+    }
+
+    private void throwIfRangeDownloadCancelled(@NonNull RangeDownloadState state)
+            throws RangeDownloadCancelledException {
+        if (state.cancelled || Thread.currentThread().isInterrupted()) {
+            throw new RangeDownloadCancelledException();
+        }
+    }
+
+    private void deletePartialFile(@Nullable File file) {
+        if (file != null && file.exists() && !file.delete()) {
+            Log.w(LOGTAG, "Cannot delete partial download: " + file.getAbsolutePath());
+        }
+    }
+
+    private static class RangeDownloadState {
+        final long id;
+        final DownloadJob job;
+        volatile long totalSize;
+        volatile long downloadedSize;
+        volatile int status;
+        volatile long lastModified;
+        volatile String reason;
+        volatile File outputFile;
+        volatile File temporaryFile;
+        volatile boolean cancelled;
+
+        RangeDownloadState(long id, @NonNull DownloadJob job) {
+            this.id = id;
+            this.job = job;
+            this.totalSize = job.getContentLength() > 0L ? job.getContentLength() : -1L;
+            this.downloadedSize = 0L;
+            this.status = Download.PENDING;
+            this.lastModified = System.currentTimeMillis();
+        }
+
+        Download toDownload() {
+            return Download.createRangeDownload(
+                    id,
+                    job.getUri(),
+                    job.getContentType(),
+                    totalSize,
+                    downloadedSize,
+                    job.getTitle(),
+                    job.getDescription(),
+                    status,
+                    lastModified,
+                    reason);
+        }
+    }
+
+    private static class RangeNotSupportedException extends Exception {
+    }
+
+    private static class RangeDownloadCancelledException extends Exception {
+    }
+
+    public void downloadBlobUri(DownloadJob job) {
+        if (job.getInputStream() == null) {
+            Log.w(LOGTAG, "Failed to download Blob URI, missing input stream: " + job.getUri());
+            return;
+        }
+
+        final File dir = new File(Environment.getExternalStorageDirectory() + "/" + Environment.DIRECTORY_DOWNLOADS);
+        if (dir == null) {
+            Log.e(LOGTAG, "Error when saving " + job.getUri() + " : failed to get the Downloads directory");
+            return;
+        }
+
+        File file = new File(dir, job.getFilename());
+        if (file.exists()) {
+            // If the file already exists, we try to generate a new one.
+            String extension = MimeTypeMap.getFileExtensionFromUrl(file.toString());
+            if (!StringUtils.isEmpty(extension)) {
+                extension = '.' + extension;
+            }
+            String name = file.getName();
+            int lastDotIndex = name.lastIndexOf('.');
+            if (lastDotIndex >= 0) {
+                name = name.substring(0, lastDotIndex);
+            }
+            int currentIndex = 0;
+            int lastDashIndex = name.lastIndexOf('-');
+            if (lastDashIndex >= 0) {
+                String nameBackup = name;
+                try {
+                    name = name.substring(0, lastDashIndex - 1);
+                    String index = name.substring(lastDashIndex + 1);
+                    currentIndex = Integer.parseInt(index);
+                } catch (Exception e) {
+                    name = nameBackup;
+                }
+            }
+            do {
+                currentIndex++;
+                file = new File(dir, name + '-' + currentIndex + extension);
+            } while (file.exists() || file.isDirectory());
+        }
+        Log.i(LOGTAG, "Will save " + job.getUri() + " to " + file.getName());
+
+        long readBytes = 0L;
+        byte[] buf = new byte[8192];
+        int n;
+        try {
+            InputStream in = job.getInputStream();
+            OutputStream out = new FileOutputStream(file, false);
+            while ((n = in.read(buf)) > 0) {
+                out.write(buf, 0, n);
+                readBytes += n;
+            }
+            out.close();
+        } catch (IOException e) {
+            Log.e(LOGTAG, "Error when saving " + job.getUri() + " : " + e.getMessage());
+            return;
+        }
+        Log.i(LOGTAG, "Saved " + job.getUri() + " to " + file.getName() + " (" + readBytes + " bytes)");
+
+        // TODO: Deprecated addCompletedDownload(...), see https://github.com.r800zz.r800zzbrowser/issues/798
+        long downloadId = mDownloadManager.addCompletedDownload(file.getName(), file.getName(),
+                true, UrlUtils.getMimeTypeFromUrl(file.getPath()), file.getPath(), readBytes, true,
+                Uri.parse(job.getUri().replaceFirst("^blob:", "")), null);
+
+        notifyDownloadCompleted(downloadId);
+    }
+
+    public void removeDownload(long downloadId, boolean deleteFiles) {
+        RangeDownloadState rangeDownload = findRangeDownload(downloadId);
+        if (rangeDownload != null) {
+            rangeDownload.cancelled = true;
+            removeRangeDownload(rangeDownload);
+            deletePartialFile(rangeDownload.temporaryFile);
+            if (deleteFiles && rangeDownload.outputFile != null
+                    && rangeDownload.outputFile.exists()) {
+                rangeDownload.outputFile.delete();
+            }
+            notifyDownloadsUpdate();
+            return;
+        }
+
+        Download download = getDownload(downloadId);
+        if (download != null) {
+            if (!deleteFiles) {
+                File file = download.getOutputFile();
+                if (file != null && file.exists()) {
+                    File newFile = new File(file.getAbsolutePath().concat(".bak"));
+                    file.renameTo(newFile);
+                    if (mDownloadManager != null) {
+                        removeDownloadOnDiskIO(downloadId);
+                    }
+                    newFile.renameTo(file);
+
+                } else {
+                    if (mDownloadManager != null) {
+                        removeDownloadOnDiskIO(downloadId);
+                    }
+                }
+
+            } else {
+                if (mDownloadManager != null) {
+                    removeDownloadOnDiskIO(downloadId);
+                }
+            }
+        }
+        notifyDownloadsUpdate();
+    }
+
+    public void removeAllDownloads(boolean deleteFiles) {
+        getDownloads().forEach(download -> removeDownload(download.getId(), deleteFiles));
+    }
+
+    @Nullable
+    public Download getDownload(long downloadId) {
+        RangeDownloadState rangeDownload = findRangeDownload(downloadId);
+        if (rangeDownload != null) {
+            return rangeDownload.toDownload();
+        }
+
+        Download download = null;
+
+        if (mDownloadManager != null) {
+            DownloadManager.Query query = new DownloadManager.Query();
+            query.setFilterById(downloadId);
+            Cursor c = mDownloadManager.query(query);
+            if (c != null) {
+                if (c.moveToFirst()) {
+                    download = Download.from(c);
+                }
+                c.close();
+            }
+        }
+
+        return download;
+    }
+
+    public List<Download> getDownloads() {
+        List<Download> downloads = new ArrayList<>();
+        downloads.addAll(getRangeDownloadsSnapshot());
+
+        if (mDownloadManager != null) {
+            DownloadManager.Query query = new DownloadManager.Query();
+            Cursor c = mDownloadManager.query(query);
+            if (c != null) {
+                while (c.moveToNext()) {
+                    downloads.add(Download.from(c));
+                }
+                c.close();
+            }
+        }
+
+        return downloads;
+    }
+
+    public boolean isDownloading() {
+        return getDownloads().stream()
+                .filter(item ->
+                        item.getStatus() == Download.RUNNING)
+                .findFirst().orElse(null) != null;
+    }
+
+    private BroadcastReceiver mDownloadReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            long downloadId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, 0);
+
+            if (DownloadManager.ACTION_DOWNLOAD_COMPLETE.equals(action)) {
+                notifyDownloadCompleted(downloadId);
+            }
+        }
+    };
+
+    private void notifyDownloadsUpdate() {
+        mDiskExecutor.execute(() -> {
+            List<Download> downloads = getDownloads();
+            int filter = Download.RUNNING | Download.PAUSED | Download.PENDING;
+            boolean activeDownloads = downloads.stream().filter(d -> (d.getStatus() & filter) != 0).count()  > 0;
+            mMainHandler.post(() -> {
+                mListeners.forEach(listener -> listener.onDownloadsUpdate(downloads));
+            });
+            if (!activeDownloads) {
+                stopUpdates();
+            }
+        });
+    }
+
+    private void notifyDownloadCompleted(@NonNull long downloadId) {
+        if (mDownloadManager == null) {
+            return;
+        }
+        DownloadManager.Query query = new DownloadManager.Query();
+        query.setFilterById(downloadId);
+        Cursor c = mDownloadManager.query(query);
+        if (c == null) {
+            return;
+        }
+        if (c.moveToFirst()) {
+            notifyDownloadsUpdate();
+            Download download = Download.from(c);
+            if (download.getStatus() == Download.SUCCESSFUL)
+                notifyDownloadCompleted(download);
+            else
+                notifyDownloadError(
+                        "Download failed. Reason: " + download.getReason()
+                                + ", downloaded: " + download.getDownloadedBytes()
+                                + ", total: " + download.getSizeBytes()
+                                + ", URI: ",
+                        download.getUri());
+        }
+        c.close();
+    }
+
+    private void notifyDownloadCompleted(@NonNull Download download) {
+        mListeners.forEach(listener -> listener.onDownloadCompleted(download));
+    }
+
+    private void notifyDownloadError(@NonNull String error, @NonNull String file) {
+        mListeners.forEach(listener -> listener.onDownloadError(error, file));
+    }
+
+    private Runnable mDownloadUpdateTask = () -> {
+        mMainHandler.post(this::notifyDownloadsUpdate);
+    };
+
+}

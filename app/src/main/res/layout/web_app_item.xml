@@ -8,11 +8,11 @@
 
         <variable
             name="item"
-            type="com.igalia.wolvic.ui.adapters.WebApp" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.WebApp" />
 
         <variable
             name="callback"
-            type="com.igalia.wolvic.ui.callbacks.WebAppItemCallback" />
+            type="com.r800zz.r800zzbrowser.ui.callbacks.WebAppItemCallback" />
 
         <variable
             name="isNarrow"

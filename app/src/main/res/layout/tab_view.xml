@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<com.igalia.wolvic.ui.views.TabView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.r800zz.r800zzbrowser.ui.views.TabView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="@dimen/tab_view_height"
     xmlns:tools="http://schemas.android.com/tools">
@@ -61,7 +61,7 @@
             android:lines="1"
             tools:text="Title"/>
 
-        <com.igalia.wolvic.ui.views.UIButton
+        <com.r800zz.r800zzbrowser.ui.views.UIButton
             android:id="@+id/tabViewCloseButton"
             android:layout_width="30dp"
             android:layout_height="30dp"
@@ -72,7 +72,7 @@
             android:layout_alignParentEnd="true"
             android:layout_alignParentTop="true" />
 
-        <com.igalia.wolvic.ui.views.UIButton
+        <com.r800zz.r800zzbrowser.ui.views.UIButton
             android:id="@+id/tabViewSendButton"
             android:layout_width="30dp"
             android:layout_height="30dp"
@@ -158,4 +158,4 @@
         android:layout_alignParentBottom="true"
         android:background="@android:color/transparent"/>
 
-</com.igalia.wolvic.ui.views.TabView>
+</com.r800zz.r800zzbrowser.ui.views.TabView>

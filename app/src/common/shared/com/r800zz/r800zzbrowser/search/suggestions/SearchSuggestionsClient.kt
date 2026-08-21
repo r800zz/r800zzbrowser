@@ -1,0 +1,20 @@
+package com.r800zz.r800zzbrowser.search.suggestions
+
+import android.content.Context
+import com.r800zz.r800zzbrowser.browser.engine.EngineProvider
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.future.future
+import mozilla.components.feature.search.suggestions.SearchSuggestionClient
+import mozilla.components.concept.fetch.Request
+import java.nio.charset.StandardCharsets
+import java.util.concurrent.CompletableFuture
+
+fun getSuggestionsAsync(client: SearchSuggestionClient, query: String): CompletableFuture<List<String>> =
+        GlobalScope.future {
+            (client.getSuggestions(query) ?: emptyList()).orEmpty().filterNotNull()
+        }
+
+fun fetchSearchSuggestions(context: Context, searchUrl: String): String? {
+    val request = Request(searchUrl);
+    return EngineProvider.getDefaultClient(context).fetch(request).body.string(StandardCharsets.UTF_8)
+}

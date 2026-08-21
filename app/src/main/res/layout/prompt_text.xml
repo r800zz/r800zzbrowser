@@ -32,7 +32,7 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Title" />
 
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/bodyContainer"
             style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
@@ -58,10 +58,10 @@
                 android:textAlignment="viewStart"
                 android:textSize="18sp"
                 tools:text="Message" />
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
 
-        <com.igalia.wolvic.ui.views.settings.SettingsEditText
+        <com.r800zz.r800zzbrowser.ui.views.settings.SettingsEditText
             android:id="@+id/promptText"
             style="@style/settingsEdit"
             android:layout_width="0dp"

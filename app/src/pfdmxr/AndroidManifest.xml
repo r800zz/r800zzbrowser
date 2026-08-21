@@ -19,7 +19,6 @@
     <uses-feature android:name="yvr.software.handtracking" android:required="false" />
     <uses-feature android:name="com.yvr.feature.PASSTHROUGH" android:required="false" />
 
-    <uses-feature android:glEsVersion="0x00030001" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 

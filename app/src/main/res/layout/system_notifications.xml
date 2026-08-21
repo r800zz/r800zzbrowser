@@ -6,7 +6,7 @@
 
         <variable
             name="notificationsViewModel"
-            type="com.igalia.wolvic.ui.viewmodel.SystemNotificationsViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.SystemNotificationsViewModel" />
 
     </data>
 
@@ -56,7 +56,7 @@
             android:visibility="gone"
             app:visibleGone="@{notificationsViewModel.isLoading}" />
 
-        <com.igalia.wolvic.ui.views.CustomRecyclerView
+        <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
             android:id="@+id/notifications_list"
             style="@style/customRecyclerViewStyle"
             android:layout_width="match_parent"

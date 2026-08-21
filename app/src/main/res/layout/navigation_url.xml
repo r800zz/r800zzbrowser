@@ -4,14 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-        <import type="com.igalia.wolvic.utils.UrlUtils"/>
-        <import type="com.igalia.wolvic.ui.views.CustomInlineAutocompleteEditText" />
+        <import type="com.r800zz.r800zzbrowser.utils.UrlUtils"/>
+        <import type="com.r800zz.r800zzbrowser.ui.views.CustomInlineAutocompleteEditText" />
         <variable
             name="viewmodel"
-            type="com.igalia.wolvic.ui.viewmodel.WindowViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.WindowViewModel" />
         <variable
             name="settingsViewmodel"
-            type="com.igalia.wolvic.ui.viewmodel.SettingsViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.SettingsViewModel" />
     </data>
 
     <FrameLayout
@@ -43,7 +43,7 @@
                 android:orientation="horizontal"
                 app:visibleGone="@{!viewmodel.isFindInPage &amp;&amp; !viewmodel.isFocused &amp;&amp; viewmodel.isUrlBarButtonsVisible}">
 
-                <com.igalia.wolvic.ui.views.UIButton
+                <com.r800zz.r800zzbrowser.ui.views.UIButton
                     android:id="@+id/tracking"
                     style="@style/urlBarIconThemeStart"
                     android:paddingStart="6dp"
@@ -71,7 +71,7 @@
                         android:layout_marginBottom="5dp"
                         android:background="@color/rhino"
                         visibleGone="@{settingsViewmodel.isTrackingProtectionEnabled}" />
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         android:id="@+id/drm"
                         style="@style/urlBarIconTheme"
                         android:layout_width="@{!settingsViewmodel.isTrackingProtectionEnabled ? @dimen/url_bar_first_item_width : @dimen/url_bar_item_width}"
@@ -100,7 +100,7 @@
                         android:layout_marginBottom="5dp"
                         android:background="@color/rhino"
                         visibleGone="@{settingsViewmodel.isTrackingProtectionEnabled || (settingsViewmodel.isDrmEnabled &amp;&amp; viewmodel.isDrmUsed)}" />
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         android:id="@+id/popup"
                         style="@style/urlBarIconTheme"
                         android:layout_width="@{(!settingsViewmodel.isTrackingProtectionEnabled &amp;&amp; !(settingsViewmodel.isDrmEnabled &amp;&amp; viewmodel.isDrmUsed)) ? @dimen/url_bar_first_item_width : @dimen/url_bar_item_width}"
@@ -129,7 +129,7 @@
                         android:layout_marginBottom="5dp"
                         android:background="@color/rhino"
                         visibleGone="@{settingsViewmodel.isTrackingProtectionEnabled || (settingsViewmodel.isPopUpBlockingEnabled &amp;&amp; viewmodel.isPopUpBlocked) || (settingsViewmodel.isDrmEnabled &amp;&amp; viewmodel.isDrmUsed)}"/>
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         android:id="@+id/webxr"
                         style="@style/urlBarIconTheme"
                         android:layout_width="@{(!settingsViewmodel.isTrackingProtectionEnabled &amp;&amp; !(settingsViewmodel.isPopUpBlockingEnabled &amp;&amp; viewmodel.isPopUpBlocked) &amp;&amp; !(settingsViewmodel.isDrmEnabled &amp;&amp; viewmodel.isDrmUsed)) ? @dimen/url_bar_first_item_width : @dimen/url_bar_item_width}"
@@ -173,7 +173,7 @@
                     app:visibleGone="@{viewmodel.isInsecureVisible}" />
             </LinearLayout>
 
-            <com.igalia.wolvic.ui.views.CustomInlineAutocompleteEditText
+            <com.r800zz.r800zzbrowser.ui.views.CustomInlineAutocompleteEditText
                 android:id="@+id/urlEditText"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -225,7 +225,7 @@
                 app:visibleGone="@{!viewmodel.isFindInPage}"
                 android:orientation="horizontal">
 
-                <com.igalia.wolvic.ui.views.UIButton
+                <com.r800zz.r800zzbrowser.ui.views.UIButton
                     android:id="@+id/microphoneButton"
                     style="@style/urlBarIconTheme"
                     android:layout_width="@{(viewmodel.isNativeContentVisible || viewmodel.isUrlEmpty) ? @dimen/url_bar_last_item_width : @dimen/url_bar_item_width}"
@@ -236,7 +236,7 @@
                     app:privateMode="@{viewmodel.isPrivateSession}"
                     app:visibleGone="@{viewmodel.isMicrophoneEnabled &amp;&amp; !viewmodel.isFocused}"/>
 
-                <com.igalia.wolvic.ui.views.UIButton
+                <com.r800zz.r800zzbrowser.ui.views.UIButton
                     android:id="@+id/webAppButton"
                     style="@style/urlBarIconTheme"
                     android:layout_width="@{(viewmodel.isNativeContentVisible || viewmodel.isUrlEmpty) ? @dimen/url_bar_last_item_width : @dimen/url_bar_item_width}"
@@ -247,7 +247,7 @@
                     app:privateMode="@{viewmodel.isPrivateSession}"
                     app:visibleGone="@{viewmodel.isWebApp &amp;&amp; !(viewmodel.isNativeContentVisible || viewmodel.isUrlEmpty) &amp;&amp; !viewmodel.isFocused}" />
 
-                <com.igalia.wolvic.ui.views.UIButton
+                <com.r800zz.r800zzbrowser.ui.views.UIButton
                     android:id="@+id/bookmarkButton"
                     style="@style/urlBarIconThemeEnd"
                     android:src="@{viewmodel.isBookmarked ? @drawable/ic_icon_bookmarked_active : @drawable/ic_icon_bookmarked}"
@@ -257,7 +257,7 @@
                     app:visibleGone="@{!(viewmodel.isNativeContentVisible || viewmodel.isUrlEmpty) &amp;&amp; !viewmodel.isFocused}"
                     tools:src="@drawable/ic_icon_bookmarked" />
 
-                <com.igalia.wolvic.ui.views.UIButton
+                <com.r800zz.r800zzbrowser.ui.views.UIButton
                     android:id="@+id/clearButton"
                     style="@style/urlBarIconThemeEnd"
                     android:src="@drawable/ic_icon_clear"

@@ -9,7 +9,7 @@
         android:paddingStart="30dp"
         android:paddingEnd="30dp">
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsHeader
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsHeader
             android:id="@+id/header_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -20,7 +20,7 @@
             app:title="@string/settings_display" />
 
         <!-- ScrollView doesn't support fast scrollbar so we need to use a custom implementation -->
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/scrollbar"
             style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
@@ -38,14 +38,14 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupSetting
                     android:id="@+id/homepage"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/developer_options_homepage"
                     app:options="@array/developer_options_homepage" />
 
-                <com.igalia.wolvic.ui.views.settings.SingleEditSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SingleEditSetting
                     android:id="@+id/homepage_edit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -55,49 +55,49 @@
                     app:highlightedTextColor="@color/fog"
                     app:hintTextColor="@color/iron_blur" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/curved_display_switch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/developer_options_curved_display" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/center_windows_switch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/developer_options_center_windows" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/startWithPassthroughSwitch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/display_options_start_with_passthrough" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/headLockSwitch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/display_options_head_lock" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/autoplaySwitch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/security_options_autoplay" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/latinAutoCompleteSwitch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/display_options_latin_auto_complete" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/openTabsInBackgroundSwitch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/display_options_open_tabs_in_background" />
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupSetting
                     android:id="@+id/tabs_location_radio"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -105,13 +105,13 @@
                     app:options="@array/display_options_tabs_location"
                     app:values="@array/display_options_tabs_location_values" />
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupSetting
                     android:id="@+id/windows_size"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     app:description="@string/settings_window_size" />
 
-                <com.igalia.wolvic.ui.views.settings.SingleEditSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SingleEditSetting
                     android:id="@+id/density_edit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -122,7 +122,7 @@
                     app:hintTextColor="@color/iron_blur"
                     app:highlightedTextColor="@color/fog" />
 
-                <com.igalia.wolvic.ui.views.settings.SingleEditSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SingleEditSetting
                     android:id="@+id/dpi_edit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -133,7 +133,7 @@
                     app:hintTextColor="@color/iron_blur"
                     app:highlightedTextColor="@color/fog" />
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupSetting
                     android:id="@+id/ua_radio"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -141,7 +141,7 @@
                     app:options="@array/developer_options_ua_modes"
                     app:values="@array/developer_options_ua_mode_values" />
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupSetting
                     android:id="@+id/msaa_radio"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -150,9 +150,9 @@
                     app:values="@array/developer_options_msaa_mode_values" />
 
             </LinearLayout>
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsFooter
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsFooter
             android:id="@+id/footer_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

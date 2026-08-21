@@ -42,7 +42,7 @@
                     android:maxLines="1"
                     tools:text="Value" />
 
-                <com.igalia.wolvic.ui.views.settings.SettingsEditText
+                <com.r800zz.r800zzbrowser.ui.views.settings.SettingsEditText
                     android:id="@+id/editValue1"
                     style="@style/settingsEdit"
                     android:inputType="number"
@@ -63,7 +63,7 @@
                     android:maxLines="1"
                     tools:text="Value" />
 
-                <com.igalia.wolvic.ui.views.settings.SettingsEditText
+                <com.r800zz.r800zzbrowser.ui.views.settings.SettingsEditText
                     android:id="@+id/editValue2"
                     style="@style/settingsEdit"
                     android:inputType="number"

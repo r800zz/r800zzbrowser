@@ -5,11 +5,11 @@
 
         <variable
             name="item"
-            type="com.igalia.wolvic.ui.adapters.SystemNotification" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.SystemNotification" />
 
         <variable
             name="callback"
-            type="com.igalia.wolvic.ui.callbacks.SystemNotificationItemCallback" />
+            type="com.r800zz.r800zzbrowser.ui.callbacks.SystemNotificationItemCallback" />
 
     </data>
 

@@ -4,15 +4,15 @@
 
     <data>
 
-        <import type="com.igalia.wolvic.ui.adapters.FileUploadItem" />
+        <import type="com.r800zz.r800zzbrowser.ui.adapters.FileUploadItem" />
 
         <variable
             name="item"
-            type="com.igalia.wolvic.ui.adapters.FileUploadItem" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.FileUploadItem" />
 
         <variable
             name="callback"
-            type="com.igalia.wolvic.ui.callbacks.FileUploadItemCallback" />
+            type="com.r800zz.r800zzbrowser.ui.callbacks.FileUploadItemCallback" />
 
     </data>
 

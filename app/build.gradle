@@ -72,10 +72,10 @@ def getHVRApiKey = { ->
 
 def getHVRMLSpeechServices = { ->
     if (getHVRApiKey().isEmpty()) {
-        return "{ com.igalia.wolvic.speech.SpeechServices.VOSK }"
+        return "{ com.r800zz.r800zzbrowser.speech.SpeechServices.VOSK }"
     } else {
-        return "{ com.igalia.wolvic.speech.SpeechServices.VOSK, " +
-                " com.igalia.wolvic.speech.SpeechServices.HUAWEI_ASR }";
+        return "{ com.r800zz.r800zzbrowser.speech.SpeechServices.VOSK, " +
+                " com.r800zz.r800zzbrowser.speech.SpeechServices.HUAWEI_ASR }";
     }
 }
 
@@ -94,37 +94,40 @@ def isWebKitAvailable = {
 }
 
 // Version names for Gecko and Chromium releases.
-def GECKO_RELEASE_VERSION_NAME = '2.0'
-def CHROMIUM_RELEASE_VERSION_NAME = '1.4'
+//def GECKO_RELEASE_VERSION_NAME = '2.0'
+//def CHROMIUM_RELEASE_VERSION_NAME = '1.4'
+def GECKO_RELEASE_VERSION_NAME = '0.9'
+def CHROMIUM_RELEASE_VERSION_NAME = '0.9'
 
 android {
-    namespace 'com.igalia.wolvic'
+    namespace 'com.r800zz.r800zzbrowser'
     compileSdkVersion 35
     defaultConfig {
-        applicationId "com.igalia.wolvic"
-        minSdkVersion 24
+        applicationId "com.r800zz.r800zzbrowser"
+        minSdkVersion 29
         targetSdkVersion 34
         versionCode generatedVersionCode
-        versionName "1.9"
+        //versionName "1.9"
+        versionName "0.9"
         buildConfigField "String", "GIT_HASH", "\"${getGitHash()}\""
         buildConfigField "Boolean", "DISABLE_CRASH_RESTART", getCrashRestartDisabled()
         buildConfigField "String", "AMO_COLLECTION", "\"fxr\""
         buildConfigField "Boolean", "WEBVIEW_IN_PHONE_UI", "false"
         buildConfigField "Boolean", "CN_FIRST_RUN_IN_PHONE_UI", "false"
         buildConfigField "Boolean", "FXA_USE_CHINA_SERVER", "false"
-        buildConfigField "String[]", "SPEECH_SERVICES", "{ com.igalia.wolvic.speech.SpeechServices.VOSK }"
+        buildConfigField "String[]", "SPEECH_SERVICES", "{ com.r800zz.r800zzbrowser.speech.SpeechServices.VOSK }"
         buildConfigField "Boolean", "SUPPORTS_SYSTEM_NOTIFICATIONS", "false"
         buildConfigField "Float", "DEFAULT_DENSITY", "1.25f"
         buildConfigField "Float", "DEFAULT_WINDOW_DISTANCE", "0.0f"
         buildConfigField "Boolean", "ENABLE_PAGE_ZOOM", "false"
         buildConfigField "Boolean", "USE_SOUNDPOOL", "true"
-        buildConfigField 'String', 'ANNOUNCEMENTS_ENDPOINT', '"https://igalia.github.io/wolvic/announcements.json"'
-        buildConfigField 'String', 'EXPERIENCES_ENDPOINT', '"https://igalia.github.io/wolvic/experiences.json"'
-        buildConfigField 'String', 'HEYVR_ENDPOINT', '"https://api.heyvr.io/v1/public/global/feed/featured?limit=50"'
+        buildConfigField 'String', 'ANNOUNCEMENTS_ENDPOINT', '""'
+        buildConfigField 'String', 'EXPERIENCES_ENDPOINT', '""'
+        buildConfigField 'String', 'HEYVR_ENDPOINT', '""'
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        resValue 'string', 'app_name', 'Wolvic'
-        resValue 'string', 'HOMEPAGE_URL', "https://wolvic.com/start"
+        resValue 'string', 'app_name', 'r800zzbrowser'
+        resValue 'string', 'HOMEPAGE_URL', "https://vr180g.com"
         externalNativeBuild {
             cmake {
                 cppFlags "-std=c++14 -fexceptions -frtti -Werror" +
@@ -150,7 +153,7 @@ android {
     }
 
     base {
-        archivesName = "Wolvic"
+        archivesName = "r800zzbrowser"
     }
 
     compileOptions {
@@ -186,6 +189,20 @@ android {
         debug {
             applicationIdSuffix getDevApplicationIdSuffix()
             pseudoLocalesEnabled true
+//release
+    debuggable false
+    jniDebuggable false
+    minifyEnabled false
+    shrinkResources false
+//
+//release chromium down
+/* debuggable false
+jniDebuggable false
+minifyEnabled true
+shrinkResources true
+proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+*/
+//
         }
     }
 
@@ -238,6 +255,7 @@ android {
         // Supported platforms
         oculusvr {
             dimension "platform"
+            minSdkVersion 29
             targetSdkVersion 32
             buildConfigField "Boolean", "USE_SOUNDPOOL", "false"
             externalNativeBuild {
@@ -334,7 +352,7 @@ android {
 
         visionglass {
             dimension "platform"
-            applicationId "com.igalia.wolvic"
+            applicationId "com.r800zz.r800zzbrowser"
             applicationIdSuffix ".visionglass"
             resValue "string", "app_name", "Wolvic Vision"
             targetSdkVersion 33
@@ -367,18 +385,20 @@ android {
         // Supported Backends
         gecko {
             dimension "backend"
+            resValue "string", "app_name", "r800zzbrowser Gecko"
             externalNativeBuild {
                 cmake {
                     cppFlags " -DGECKO"
                     arguments "-DGECKO=ON"
                 }
             }
-            buildConfigField 'String', 'PROPS_ENDPOINT', '"https://igalia.github.io/wolvic/props.json"'
+            buildConfigField 'String', 'PROPS_ENDPOINT', '"https://vr180g.com/browser/props.json"'
         }
 
         chromium {
+            applicationId "com.r800zz.r800zzbrowser.chromi"
             dimension "backend"
-            resValue "string", "app_name", "Wolvic Chromium"
+            resValue "string", "app_name", "r800zzbrowser Chromium"
             externalNativeBuild {
                 cmake {
                     cppFlags " -DCHROMIUM"
@@ -386,7 +406,7 @@ android {
                 }
             }
             buildConfigField "Boolean", "ENABLE_PAGE_ZOOM", "true"
-            buildConfigField 'String', 'PROPS_ENDPOINT', '"https://igalia.github.io/wolvic/props-chromium.json"'
+            buildConfigField 'String', 'PROPS_ENDPOINT', '"https://vr180g.com/browser/props.json"'
         }
 
         webkit {
@@ -409,7 +429,7 @@ android {
         }
 
         mainlandChina {
-            applicationId "com.cn.igalia.wolvic"
+            applicationId "com.cn.r800zz.r800zzbrowser"
             dimension "store"
             buildConfigField "Boolean", "FXA_USE_CHINA_SERVER", "true"
             buildConfigField "Boolean", "WEBVIEW_IN_PHONE_UI", "true"
@@ -458,7 +478,7 @@ android {
 
             // Adjust the applicationId so it matches what the store expects.
             if (platform == "visionglass" && store == "generic") {
-                variant.applicationId.set("com.igalia.wolvic.world.visionglass")
+                variant.applicationId.set("com.r800zz.r800zzbrowser.world.visionglass")
             }
         }
     }
@@ -720,8 +740,11 @@ dependencies {
 
     // gecko
     def branch = "nightly" // "release", "nightly" or "beta"
-    geckoImplementation libs.geckoview."${branch}".x64
-    geckoImplementation libs.geckoview."${branch}".arm64
+    //geckoImplementation libs.geckoview."${branch}".x64 //not supports WebXR
+    //geckoImplementation libs.geckoview."${branch}".arm64 //not supports WebXR
+    def localGeckoVersion = "140.8.20260629202849-SNAPSHOT"
+
+    geckoImplementation "org.mozilla.geckoview:geckoview-default-omni:${localGeckoVersion}"
     configurations.all {
          resolutionStrategy.capabilitiesResolution.withCapability('org.mozilla.geckoview:geckoview') {
             def abi = getName().toLowerCase().contains('x64') ? 'x86_64' : 'arm64'
@@ -751,7 +774,26 @@ dependencies {
     implementation libs.opentelemetry.android.instrumentation.crash
     implementation libs.opentelemetry.android.instrumentation.sessions
     implementation libs.opentelemetry.exporter.logging
+
+    //implementation 'com.google.mlkit:segmentation-selfie:16.0.0-beta6' //r800zz
+    //implementation(name: 'onnxruntime-release', ext: 'aar') //r800zz MODNet QNN
+    //implementation 'com.microsoft.onnxruntime:onnxruntime-android-qnn:1.27.0' //r800zz MODNet QNN
+    //implementation(name: 'onnxruntime-release', ext: 'aar') //r800zz MODNet QNN
+    //implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.24.3' //r800zz
+/*
+    implementation('com.qualcomm.qti:onnxruntime-android-qnn:2.4.0') {
+      transitive = false
+    } //r800zz MODNet QNN Plugin
+*/
+    implementation(name: 'onnxruntime-release', ext: 'aar') //r800zz MODNet QNN
+
     coreLibraryDesugaring libs.desugar.jdk.libs
+}
+
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
 }
 
 if (findProject(':servo')) {
@@ -795,23 +837,30 @@ android.applicationVariants.configureEach { variant ->
     // HVR packages for mainland china must only use HVR speech recognition system.
     if (store == "mainlandChina") {
         if (platform.toLowerCase().startsWith('hvr')) {
-            variant.resValue 'string', 'HOMEPAGE_URL', '"https://wolvic.com/zh/start/index.html"'
-            variant.buildConfigField "String[]", "SPEECH_SERVICES", "{ com.igalia.wolvic.speech.SpeechServices.HUAWEI_ASR }"
+            variant.resValue 'string', 'HOMEPAGE_URL', '"https://vr180g.com/?l=cn"'
+            variant.buildConfigField "String[]", "SPEECH_SERVICES", "{ com.r800zz.r800zzbrowser.speech.SpeechServices.HUAWEI_ASR }"
         } else if (platform.toLowerCase().startsWith('visionglass')) {
-            variant.resValue 'string', 'HOMEPAGE_URL', '"https://wolvic.com/zh/start/hvg.html"'
-            variant.buildConfigField "String[]", "SPEECH_SERVICES", "{ com.igalia.wolvic.speech.SpeechServices.HUAWEI_ASR }"
+            variant.resValue 'string', 'HOMEPAGE_URL', '"https://vr180g.com/?l=cn"'
+            variant.buildConfigField "String[]", "SPEECH_SERVICES", "{ com.r800zz.r800zzbrowser.speech.SpeechServices.HUAWEI_ASR }"
         } else if (platform.toLowerCase().startsWith('picoxr')) {
-            variant.resValue 'string', 'HOMEPAGE_URL', '"https://wolvic.com/zh/start/pico.html"'
-            variant.buildConfigField "String[]", "SPEECH_SERVICES", "{ com.igalia.wolvic.speech.SpeechServices.VOSK }"
+            variant.resValue 'string', 'HOMEPAGE_URL', '"https://vr180g.com/?l=cn"'
+            variant.buildConfigField "String[]", "SPEECH_SERVICES", "{ com.r800zz.r800zzbrowser.speech.SpeechServices.VOSK }"
         }  else if (platform.toLowerCase().startsWith('pfdmxr')) {
-            variant.resValue 'string', 'HOMEPAGE_URL', '"https://wolvic.com/zh/start/pfdm.html"'
-            variant.buildConfigField "String[]", "SPEECH_SERVICES", "{ com.igalia.wolvic.speech.SpeechServices.VOSK }"
+            variant.resValue 'string', 'HOMEPAGE_URL', '"https://vr180g.com/?l=cn"'
+            variant.buildConfigField "String[]", "SPEECH_SERVICES", "{ com.r800zz.r800zzbrowser.speech.SpeechServices.VOSK }"
         }
     }
 
     // Append "Dev" to the app name for debug builds. We do it by directly modifying the resource
     // value so that this is visible from inside the app.
-    if (variant.buildType.name == "debug") {
-        variant.resValue "string", "app_name", variant.mergedFlavor.resValues.get("string/app_name").value + " (Dev)"
+    //if (variant.buildType.name == "debug") {
+        //variant.resValue "string", "app_name", variant.mergedFlavor.resValues.get("string/app_name").value + " (Dev)"
+    //}
+}
+
+tasks.configureEach { task ->
+    def name = task.name.toLowerCase()
+    if (name.contains("unittest")) {
+        task.enabled = false //r800zz
     }
 }

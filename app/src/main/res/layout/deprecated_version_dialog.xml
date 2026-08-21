@@ -29,7 +29,7 @@
 
         </FrameLayout>
 
-        <com.igalia.wolvic.ui.views.UIButton
+        <com.r800zz.r800zzbrowser.ui.views.UIButton
             android:id="@+id/dismissButton"
             style="?attr/headerBarButtonStyle"
             android:layout_alignParentTop="true"
@@ -74,7 +74,7 @@
                 android:textStyle="bold" />
         </FrameLayout>
 
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/bodyContainer"
             style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
@@ -98,7 +98,7 @@
                 android:textColor="@color/fog"
                 android:textSize="@dimen/text_medium_size" />
 
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
         <LinearLayout
             android:id="@+id/buttonsContainer"

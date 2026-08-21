@@ -8,7 +8,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <com.igalia.wolvic.ui.views.CustomRecyclerView
+        <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
             android:id="@+id/list"
             style="@style/customRecyclerViewStyle"
             android:layout_width="match_parent"

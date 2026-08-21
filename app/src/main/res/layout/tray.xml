@@ -3,13 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tool="http://schemas.android.com/tools">
     <data>
-        <import type="com.igalia.wolvic.ui.widgets.Windows.ContentType"/>
+        <import type="com.r800zz.r800zzbrowser.ui.widgets.Windows.ContentType"/>
         <variable
             name="viewmodel"
-            type="com.igalia.wolvic.ui.viewmodel.WindowViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.WindowViewModel" />
         <variable
             name="traymodel"
-            type="com.igalia.wolvic.ui.viewmodel.TrayViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.TrayViewModel" />
     </data>
 
     <RelativeLayout
@@ -152,7 +152,7 @@
             android:background="@drawable/tray_background_bottom"
             android:orientation="horizontal">
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/addwindowButton"
                 style="@style/trayButtonStartTheme"
                 android:tooltipText="@string/new_window_tooltip"
@@ -162,7 +162,7 @@
                 android:src="@drawable/ic_icon_tray_newwindow"
                 app:visibleGone="@{!traymodel.isMaxWindows}"/>
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/tabsButton"
                 style="@style/trayButtonMiddleTheme"
                 android:tooltipText="@string/tabs_tray_tooltip"
@@ -176,7 +176,7 @@
                 app:privateModeBackground="@{traymodel.isMaxWindows ? @drawable/tray_background_start_private : @drawable/tray_background_middle_private}"
                 app:activeModeBackground="@{traymodel.isMaxWindows ? @drawable/tray_background_checked_start : @drawable/tray_background_checked_middle}"/>
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/privateButton"
                 style="@style/trayButtonMiddleTheme"
                 android:tooltipText="@{viewmodel.isPrivateSession? @string/private_browsing_exit_tooltip : @string/private_browsing_enter_tooltip}"
@@ -189,7 +189,7 @@
                 app:privateModeBackground="@{traymodel.isMaxWindows &amp;&amp; !traymodel.tabsButtonInTray ? @drawable/tray_background_start_private : @drawable/tray_background_middle_private}"
                 app:activeModeBackground="@{traymodel.isMaxWindows &amp;&amp; !traymodel.tabsButtonInTray ? @drawable/tray_background_checked_start : @drawable/tray_background_checked_middle}"/>
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/bookmarksButton"
                 style="@style/trayButtonMiddleTheme"
                 android:src="@drawable/ic_icon_bookmark"
@@ -203,7 +203,7 @@
             <RelativeLayout
                 android:layout_width="40dp"
                 android:layout_height="40dp">
-                <com.igalia.wolvic.ui.views.UIButton
+                <com.r800zz.r800zzbrowser.ui.views.UIButton
                     android:id="@+id/downloadsButton"
                     style="@style/trayButtonMiddleTheme"
                     android:tooltipText="@{viewmodel.currentContentType == ContentType.DOWNLOADS ? @string/close_downloads_tooltip : @string/open_downloads_tooltip}"
@@ -232,7 +232,7 @@
                     visibleGone="@{traymodel.downloadsNumber > 0}"/>
             </RelativeLayout>
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/settingsButton"
                 style="@style/trayButtonEndTheme"
                 android:tooltipText="@string/settings_tooltip"

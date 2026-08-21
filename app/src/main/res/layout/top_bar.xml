@@ -3,10 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-        <import type="com.igalia.wolvic.ui.widgets.Windows.WindowPlacement"/>
+        <import type="com.r800zz.r800zzbrowser.ui.widgets.Windows.WindowPlacement"/>
         <variable
             name="viewmodel"
-            type="com.igalia.wolvic.ui.viewmodel.WindowViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.WindowViewModel" />
     </data>
 
     <FrameLayout
@@ -30,7 +30,7 @@
             android:orientation="horizontal"
             app:visibleGone="@{!viewmodel.showClearButton}">
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/moveWindowLeftButton"
                 style="@style/uiButtonTheme"
                 android:background="@drawable/fullscreen_button_first"
@@ -39,7 +39,7 @@
                 app:privateMode="@{viewmodel.isPrivateSession}"
                 app:privateModeBackground="@drawable/fullscreen_button_private_first" />
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/closeWindowButton"
                 style="@style/uiButtonTheme"
                 android:background="@drawable/fullscreen_button"
@@ -47,7 +47,7 @@
                 app:privateMode="@{viewmodel.isPrivateSession}"
                 app:privateModeBackground="@drawable/fullscreen_button_private" />
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/moveWindowRightButton"
                 style="@style/uiButtonTheme"
                 android:background="@drawable/fullscreen_button_last"
@@ -57,7 +57,7 @@
                 app:privateModeBackground="@drawable/fullscreen_button_private_last" />
         </LinearLayout>
 
-        <com.igalia.wolvic.ui.views.UITextButton
+        <com.r800zz.r800zzbrowser.ui.views.UITextButton
             android:id="@+id/clearButton"
             style="@style/textButtonTheme"
             android:background="@drawable/text_button_private"

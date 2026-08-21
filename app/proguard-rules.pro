@@ -49,9 +49,9 @@
 # --------------------------------------------------------------------
 # Keep speech recognizer classes (loaded via Class.forName() in SpeechServices)
 # --------------------------------------------------------------------
--keep class com.igalia.wolvic.speech.VoskSpeechRecognizer { *; }
--keep class com.igalia.wolvic.speech.VoskModelManager { *; }
--keep class com.igalia.wolvic.speech.HVRSpeechRecognizer { *; }
+-keep class com.r800zz.r800zzbrowser.speech.VoskSpeechRecognizer { *; }
+-keep class com.r800zz.r800zzbrowser.speech.VoskModelManager { *; }
+-keep class com.r800zz.r800zzbrowser.speech.HVRSpeechRecognizer { *; }
 
 # Keep Vosk library classes — the native libvosk.so calls back into these via JNI,
 # and the AAR ships no consumer ProGuard rules of its own.
@@ -73,16 +73,16 @@
 # --------------------------------------------------------------------
 # Keep classes from FxR
 # --------------------------------------------------------------------
--keep class com.igalia.wolvic.ui.widgets.WidgetPlacement {*;} # Keep class used in JNI.
--keep class com.igalia.wolvic.ui.widgets.Windows$** {*;} # Keep state clases used by gson.
--keep class com.igalia.wolvic.browser.engine.** {*;} # Keep state clases used by gson.
--keep class com.igalia.wolvic.utils.RemoteProperties {*;} # Keep state clases used by gson.
--keep class com.igalia.wolvic.utils.Environment {*;} # Keep state clases used by gson.
--keep class com.igalia.wolvic.utils.RemoteExperiences {*;} # Keep remote experience classes used by gson.
--keep class com.igalia.wolvic.utils.Category {*;} # Keep remote experience classes used by gson.
--keep class com.igalia.wolvic.utils.Experience {*;} # Keep remote experience classes used by gson.
--keep class com.igalia.wolvic.utils.RemoteAnnouncements {*;} # Keep announcement classes used by gson.
--keep class com.igalia.wolvic.utils.Announcement {*;} # Keep announcement classes used by gson.
+-keep class com.r800zz.r800zzbrowser.ui.widgets.WidgetPlacement {*;} # Keep class used in JNI.
+-keep class com.r800zz.r800zzbrowser.ui.widgets.Windows$** {*;} # Keep state clases used by gson.
+-keep class com.r800zz.r800zzbrowser.browser.engine.** {*;} # Keep state clases used by gson.
+-keep class com.r800zz.r800zzbrowser.utils.RemoteProperties {*;} # Keep state clases used by gson.
+-keep class com.r800zz.r800zzbrowser.utils.Environment {*;} # Keep state clases used by gson.
+-keep class com.r800zz.r800zzbrowser.utils.RemoteExperiences {*;} # Keep remote experience classes used by gson.
+-keep class com.r800zz.r800zzbrowser.utils.Category {*;} # Keep remote experience classes used by gson.
+-keep class com.r800zz.r800zzbrowser.utils.Experience {*;} # Keep remote experience classes used by gson.
+-keep class com.r800zz.r800zzbrowser.utils.RemoteAnnouncements {*;} # Keep announcement classes used by gson.
+-keep class com.r800zz.r800zzbrowser.utils.Announcement {*;} # Keep announcement classes used by gson.
 -keep class com.google.gson.reflect.TypeToken { *; }    # Keep this specific gson class
 -keep class * extends com.google.gson.reflect.TypeToken # and its descendants.
 

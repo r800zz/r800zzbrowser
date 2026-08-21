@@ -4,7 +4,7 @@
 # Sets the minimum version of CMake required to build the native library.
 
 cmake_minimum_required(VERSION 3.4.1)
-project(wolvic)
+project(r800zzbrowser)
 set(CMAKE_CXX_STANDARD 17)
 
 # Creates and names a library, sets it as either STATIC
@@ -32,6 +32,7 @@ add_library( # Sets the name of the library.
              src/main/cpp/Quad.cpp
              src/main/cpp/EngineSurfaceTexture.cpp
              src/main/cpp/ExternalBlitter.cpp
+             src/main/cpp/LayerBlitter.cpp
              src/main/cpp/ExternalVR.cpp
              src/main/cpp/GestureDelegate.cpp
              src/main/cpp/JNIUtil.cpp

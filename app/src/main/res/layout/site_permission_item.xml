@@ -6,10 +6,10 @@
     <data>
         <variable
             name="callback"
-            type="com.igalia.wolvic.ui.callbacks.PermissionSiteItemCallback" />
+            type="com.r800zz.r800zzbrowser.ui.callbacks.PermissionSiteItemCallback" />
         <variable
             name="item"
-            type="com.igalia.wolvic.db.SitePermission" />
+            type="com.r800zz.r800zzbrowser.db.SitePermission" />
     </data>
 
     <RelativeLayout

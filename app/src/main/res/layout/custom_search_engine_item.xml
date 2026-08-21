@@ -6,10 +6,10 @@
     <data>
         <variable
             name="engine"
-            type="com.igalia.wolvic.search.CustomSearchEngine" />
+            type="com.r800zz.r800zzbrowser.search.CustomSearchEngine" />
         <variable
             name="delegate"
-            type="com.igalia.wolvic.ui.adapters.CustomSearchEnginesAdapter.Delegate" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.CustomSearchEnginesAdapter.Delegate" />
         <variable
             name="isHovered"
             type="boolean" />

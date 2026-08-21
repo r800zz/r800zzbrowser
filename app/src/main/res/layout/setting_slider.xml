@@ -22,7 +22,7 @@
                     style="@style/settingsText"
                     tools:text="Slider Setting Description" />
 
-                <com.igalia.wolvic.ui.views.UIButton
+                <com.r800zz.r800zzbrowser.ui.views.UIButton
                     android:id="@+id/settings_help_button"
                     android:visibility="gone"
                     style="@style/settingsHelpButton" />

@@ -11,7 +11,7 @@
 
         <variable
             name="viewModel"
-            type="com.igalia.wolvic.ui.viewmodel.WindowViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.WindowViewModel" />
     </data>
 
     <LinearLayout
@@ -60,7 +60,7 @@
             app:iconSize="24dp"
             app:iconTint="@color/rhino" />
 
-        <com.igalia.wolvic.ui.views.CustomRecyclerView
+        <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
             android:id="@+id/tabsRecyclerView"
             style="@style/customRecyclerViewStyle"
             android:layout_width="match_parent"

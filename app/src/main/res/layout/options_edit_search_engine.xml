@@ -10,7 +10,7 @@
         android:paddingStart="30dp"
         android:paddingEnd="30dp">
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsHeader
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsHeader
             android:id="@+id/header_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -20,7 +20,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:title="@string/settings_display" />
 
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/scrollbar"
             style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
@@ -38,7 +38,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <com.igalia.wolvic.ui.views.settings.SingleEditSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SingleEditSetting
                     android:id="@+id/name_edit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -48,7 +48,7 @@
                     app:hintTextColor="@color/iron_blur"
                     app:highlightedTextColor="@color/fog" />
 
-                <com.igalia.wolvic.ui.views.settings.SingleEditSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SingleEditSetting
                     android:id="@+id/search_url_edit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -58,7 +58,7 @@
                     app:hintTextColor="@color/iron_blur"
                     app:highlightedTextColor="@color/fog" />
 
-                <com.igalia.wolvic.ui.views.settings.SingleEditSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SingleEditSetting
                     android:id="@+id/suggest_url_edit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -82,9 +82,9 @@
                     android:visibility="gone"/>
 
             </LinearLayout>
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsFooter
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsFooter
             android:id="@+id/footer_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

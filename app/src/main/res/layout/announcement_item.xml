@@ -6,11 +6,11 @@
 
         <variable
             name="announcement"
-            type="com.igalia.wolvic.utils.Announcement" />
+            type="com.r800zz.r800zzbrowser.utils.Announcement" />
 
         <variable
             name="listener"
-            type="com.igalia.wolvic.ui.adapters.AnnouncementsAdapter.ClickListener" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.AnnouncementsAdapter.ClickListener" />
     </data>
 
     <androidx.cardview.widget.CardView
@@ -43,7 +43,7 @@
                     android:scaleType="centerCrop"
                     android:src="@drawable/empty_drawable" />
 
-                <com.igalia.wolvic.ui.views.UIButton
+                <com.r800zz.r800zzbrowser.ui.views.UIButton
                     android:id="@+id/dismiss_button"
                     style="?attr/headerBarButtonStyle"
                     android:layout_alignParentTop="true"

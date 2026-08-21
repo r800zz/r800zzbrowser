@@ -8,7 +8,7 @@
 
         <variable
             name="bookmarksViewModel"
-            type="com.igalia.wolvic.ui.viewmodel.BookmarksViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.BookmarksViewModel" />
 
         <variable
             name="isAccountsUIEnabled"
@@ -32,7 +32,7 @@
 
         <variable
             name="callback"
-            type="com.igalia.wolvic.ui.callbacks.BookmarksCallback" />
+            type="com.r800zz.r800zzbrowser.ui.callbacks.BookmarksCallback" />
     </data>
 
     <RelativeLayout
@@ -96,7 +96,7 @@
             android:visibility="gone"
             app:visibleGone="@{bookmarksViewModel.isLoading}" />
 
-        <com.igalia.wolvic.ui.views.CustomRecyclerView
+        <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
             android:id="@+id/bookmarks_list"
             style="@style/customRecyclerViewStyle"
             android:layout_width="match_parent"

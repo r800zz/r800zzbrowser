@@ -16,7 +16,7 @@
         android:paddingStart="30dp"
         android:paddingEnd="30dp">
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsHeader
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsHeader
             android:id="@+id/header_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -73,7 +73,7 @@
                     android:text="@string/custom_search_engines_list_header"
                     tools:text="@string/custom_search_engines_list_header" />
 
-                <com.igalia.wolvic.ui.views.CustomRecyclerView
+                <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
                     android:id="@+id/enginesList"
                     style="@style/customRecyclerViewStyle"
                     android:layout_width="match_parent"
@@ -85,7 +85,7 @@
             </LinearLayout>
         </FrameLayout>
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsFooter
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsFooter
             android:id="@+id/footer_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

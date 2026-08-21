@@ -29,7 +29,7 @@
                 android:textStyle="bold" />
         </FrameLayout>
 
-        <com.igalia.wolvic.ui.views.CustomRecyclerView
+        <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
             android:id="@+id/loginsList"
             style="@style/customRecyclerViewStyle"
             android:layout_width="340dp"

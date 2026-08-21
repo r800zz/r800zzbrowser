@@ -1,0 +1,455 @@
+64-const char* const kOnAppLinkSignature = "(Ljava/lang/String;)V";
+65-const char* const kDisableLayers = "disableLayers";
+66-const char* const kDisableLayersSignature = "()V";
+67-const char* const kAppendAppNotesToCrashReport = "appendAppNotesToCrashReport";
+68-const char* const kAppendAppNotesToCrashReportSignature = "(Ljava/lang/String;)V";
+69-const char* const kUpdateControllerBatteryLevelsName = "updateControllerBatteryLevels";
+70-const char* const kUpdateControllerBatteryLevelsSignature = "(II)V";
+71-const char* const kOnAppFocusChangedName = "onAppFocusChanged";
+72-const char* const kOnAppFocusChangedSignature = "(Z)V";
+73-const char* const kSetEyeTrackingSupported = "setEyeTrackingSupported";
+74-const char* const kSetEyeTrackingSupportedSignature = "(Z)V";
+75-const char* const kSetHandTrackingSupported = "setHandTrackingSupported";
+76-const char* const kSetHandTrackingSupportedSignature = "(Z)V";
+77-const char* const kOnControllersAvailable = "onControllersAvailable";
+78-const char* const kOnControllersAvailableSignature = "()V";
+79-const char* const kChangeWindowDistance = "changeWindowDistance";
+80-const char* const kChangeWindowDistanceSignature = "(F)V";
+81-const char* const kOnMaxCompositionLayersAvailableName = "onMaxCompositionLayersAvailable";
+82-const char* const kOnMaxCompositionLayersAvailableSignature = "(I)V";
+83-
+84:JNIEnv* sEnv = nullptr;
+85-jclass sBrowserClass = nullptr;
+86:jobject sActivity = nullptr;
+87-jmethodID sDispatchCreateWidget = nullptr;
+88-jmethodID sDispatchCreateWidgetLayer = nullptr;
+89-jmethodID sHandleMotionEvent = nullptr;
+90-jmethodID sHandleScrollEvent = nullptr;
+91-jmethodID sHandleAudioPose = nullptr;
+92-jmethodID sHandleGesture = nullptr;
+93-jmethodID sHandleResize = nullptr;
+94-jmethodID sHandleMoveEnd = nullptr;
+95-jmethodID sHandleBack = nullptr;
+96-jmethodID sHandleAppExit = nullptr;
+97-jmethodID sRegisterExternalContext = nullptr;
+98-jmethodID sOnEnterWebXR = nullptr;
+99-jmethodID sOnExitWebXR = nullptr;
+100-jmethodID sOnDismissWebXRInterstitial = nullptr;
+101-jmethodID sOnWebXRRenderStateChange = nullptr;
+102-jmethodID sRenderPointerLayer = nullptr;
+103-jmethodID sGetStorageAbsolutePath = nullptr;
+104-jmethodID sIsOverrideEnvPathEnabled = nullptr;
+105-jmethodID sCheckTogglePassthrough = nullptr;
+106-jmethodID sResetWindowsPosition = nullptr;
+107-jmethodID sGetActiveEnvironment = nullptr;
+108-jmethodID sGetPointerColor = nullptr;
+109-jmethodID sSetDeviceType = nullptr;
+110-jmethodID sHaltActivity = nullptr;
+111-jmethodID sHandlePoorPerformance = nullptr;
+112-jmethodID sOnAppLink = nullptr;
+113-jmethodID sDisableLayers = nullptr;
+114-jmethodID sAppendAppNotesToCrashReport = nullptr;
+115-jmethodID sUpdateControllerBatteryLevels = nullptr;
+116-jmethodID sOnAppFocusChanged = nullptr;
+117-jmethodID sSetEyeTrackingSupported = nullptr;
+118-jmethodID sSetHandTrackingSupported = nullptr;
+119-jmethodID sOnControllersAvailable = nullptr;
+120-jmethodID sChangeWindowDistance = nullptr;
+121-jmethodID sOnMaxCompositionLayersAvailable = nullptr;
+122-
+123-} // namespace
+124-
+125-namespace crow {
+126-
+127-void
+128:VRBrowser::InitializeJava(JNIEnv* aEnv, jobject aActivity) {
+129:  if (aEnv == sEnv) {
+130-    return;
+131-  }
+132:  sEnv = aEnv;
+133:  if (!sEnv) {
+134-    return;
+135-  }
+136:  sActivity = sEnv->NewGlobalRef(aActivity);
+137:  sBrowserClass = sEnv->GetObjectClass(sActivity);
+138-  if (!sBrowserClass) {
+139-    return;
+140-  }
+141-
+142:  sDispatchCreateWidget = FindJNIMethodID(sEnv, sBrowserClass, kDispatchCreateWidgetName, kDispatchCreateWidgetSignature);
+143:  sDispatchCreateWidgetLayer = FindJNIMethodID(sEnv, sBrowserClass, kDispatchCreateWidgetLayerName, kDispatchCreateWidgetLayerSignature);
+144:  sHandleMotionEvent = FindJNIMethodID(sEnv, sBrowserClass, kHandleMotionEventName, kHandleMotionEventSignature);
+145:  sHandleScrollEvent = FindJNIMethodID(sEnv, sBrowserClass, kHandleScrollEventName, kHandleScrollEventSignature);
+146:  sHandleAudioPose = FindJNIMethodID(sEnv, sBrowserClass, kHandleAudioPoseName, kHandleAudioPoseSignature);
+147:  sHandleGesture = FindJNIMethodID(sEnv, sBrowserClass, kHandleGestureName, kHandleGestureSignature);
+148:  sHandleResize = FindJNIMethodID(sEnv, sBrowserClass, kHandleResizeName, kHandleResizeSignature);
+149:  sHandleMoveEnd = FindJNIMethodID(sEnv, sBrowserClass, kHandleMoveEndName, kHandleMoveEndSignature);
+150:  sHandleBack = FindJNIMethodID(sEnv, sBrowserClass, kHandleBackEventName, kHandleBackEventSignature);
+151:  sHandleAppExit = FindJNIMethodID(sEnv, sBrowserClass, kHandleAppExitEventName, kHandleAppExitEventSignature);
+152:  sRegisterExternalContext = FindJNIMethodID(sEnv, sBrowserClass, kRegisterExternalContextName, kRegisterExternalContextSignature);
+153:  sOnEnterWebXR = FindJNIMethodID(sEnv, sBrowserClass, kOnEnterWebXRName, kOnEnterWebXRSignature);
+154:  sOnExitWebXR = FindJNIMethodID(sEnv, sBrowserClass, kOnExitWebXRName, kOnExitWebXRSignature);
+155:  sOnDismissWebXRInterstitial = FindJNIMethodID(sEnv, sBrowserClass, kOnDismissWebXRInterstitialName, kOnDismissWebXRInterstitialSignature);
+156:  sOnWebXRRenderStateChange = FindJNIMethodID(sEnv, sBrowserClass, kOnWebXRRenderStateChangeName, kOnWebXRRenderStateChangeSignature);
+157:  sRenderPointerLayer = FindJNIMethodID(sEnv, sBrowserClass, kRenderPointerLayerName, kRenderPointerLayerSignature);
+158:  sGetStorageAbsolutePath = FindJNIMethodID(sEnv, sBrowserClass, kGetStorageAbsolutePathName, kGetStorageAbsolutePathSignature);
+159:  sIsOverrideEnvPathEnabled = FindJNIMethodID(sEnv, sBrowserClass, kIsOverrideEnvPathEnabledName, kIsOverrideEnvPathEnabledSignature);
+160:  sCheckTogglePassthrough = FindJNIMethodID(sEnv, sBrowserClass, kCheckTogglePassthrough, kCheckTogglePassthroughSignature);
+161:  sResetWindowsPosition = FindJNIMethodID(sEnv, sBrowserClass, kResetWindowsPosition, kResetWindowsPositionSignature);
+162:  sGetActiveEnvironment = FindJNIMethodID(sEnv, sBrowserClass, kGetActiveEnvironment, kGetActiveEnvironmentSignature);
+163:  sGetPointerColor = FindJNIMethodID(sEnv, sBrowserClass, kGetPointerColor, kGetPointerColorSignature);
+164:  sSetDeviceType = FindJNIMethodID(sEnv, sBrowserClass, kSetDeviceType, kSetDeviceTypeSignature);
+165:  sHaltActivity = FindJNIMethodID(sEnv, sBrowserClass, kHaltActivity, kHaltActivitySignature);
+166:  sHandlePoorPerformance = FindJNIMethodID(sEnv, sBrowserClass, kHandlePoorPerformance, kHandlePoorPerformanceSignature);
+167:  sOnAppLink = FindJNIMethodID(sEnv, sBrowserClass, kOnAppLink, kOnAppLinkSignature);
+168:  sDisableLayers = FindJNIMethodID(sEnv, sBrowserClass, kDisableLayers, kDisableLayersSignature);
+169:  sAppendAppNotesToCrashReport = FindJNIMethodID(sEnv, sBrowserClass, kAppendAppNotesToCrashReport, kAppendAppNotesToCrashReportSignature);
+170:  sUpdateControllerBatteryLevels = FindJNIMethodID(sEnv, sBrowserClass, kUpdateControllerBatteryLevelsName, kUpdateControllerBatteryLevelsSignature);
+171:  sOnAppFocusChanged = FindJNIMethodID(sEnv, sBrowserClass, kOnAppFocusChangedName, kOnAppFocusChangedSignature);
+172:  sSetEyeTrackingSupported = FindJNIMethodID(sEnv, sBrowserClass, kSetEyeTrackingSupported, kSetEyeTrackingSupportedSignature);
+173:  sSetHandTrackingSupported = FindJNIMethodID(sEnv, sBrowserClass, kSetHandTrackingSupported, kSetHandTrackingSupportedSignature);
+174:  sOnControllersAvailable = FindJNIMethodID(sEnv, sBrowserClass, kOnControllersAvailable, kOnControllersAvailableSignature);
+175:  sChangeWindowDistance = FindJNIMethodID(sEnv, sBrowserClass, kChangeWindowDistance, kChangeWindowDistanceSignature);
+176:  sOnMaxCompositionLayersAvailable = FindJNIMethodID(sEnv, sBrowserClass, kOnMaxCompositionLayersAvailableName, kOnMaxCompositionLayersAvailableSignature);
+177-}
+178-
+179:JNIEnv * VRBrowser::Env()
+180-{
+181:  return sEnv;
+182-}
+183-
+184-void
+185-VRBrowser::ShutdownJava() {
+186:  if (!sEnv) {
+187-    return;
+188-  }
+189:  if (sActivity) {
+190:    sEnv->DeleteGlobalRef(sActivity);
+191:    sActivity = nullptr;
+192-  }
+193-
+194-  sBrowserClass = nullptr;
+195-
+196-  sDispatchCreateWidget = nullptr;
+197-  sDispatchCreateWidgetLayer = nullptr;
+198-  sHandleMotionEvent = nullptr;
+199-  sHandleScrollEvent = nullptr;
+200-  sHandleAudioPose = nullptr;
+201-  sHandleGesture = nullptr;
+202-  sHandleResize = nullptr;
+203-  sHandleMoveEnd = nullptr;
+204-  sHandleBack = nullptr;
+205-  sHandleAppExit = nullptr;
+206-  sRegisterExternalContext = nullptr;
+207-  sOnAppFocusChanged = nullptr;
+208-  sOnEnterWebXR = nullptr;
+209-  sOnExitWebXR = nullptr;
+210-  sOnDismissWebXRInterstitial = nullptr;
+211-  sOnWebXRRenderStateChange = nullptr;
+212-  sRenderPointerLayer = nullptr;
+213-  sGetStorageAbsolutePath = nullptr;
+214-  sIsOverrideEnvPathEnabled = nullptr;
+215-  sCheckTogglePassthrough = nullptr;
+216-  sResetWindowsPosition = nullptr;
+217-  sGetActiveEnvironment = nullptr;
+218-  sGetPointerColor = nullptr;
+219-  sSetDeviceType = nullptr;
+220-  sHaltActivity = nullptr;
+221-  sOnAppLink = nullptr;
+222-  sDisableLayers = nullptr;
+223:  sEnv = nullptr;
+224-  sAppendAppNotesToCrashReport = nullptr;
+225-  sChangeWindowDistance = nullptr;
+226-  sOnMaxCompositionLayersAvailable = nullptr;
+227-}
+228-
+229-void
+230-VRBrowser::DispatchCreateWidget(jint aWidgetHandle, jobject aSurface, jint aWidth, jint aHeight) {
+231:  if (!ValidateMethodID(sEnv, sActivity, sDispatchCreateWidget, __FUNCTION__)) { return; }
+232:  sEnv->CallVoidMethod(sActivity, sDispatchCreateWidget, aWidgetHandle, aSurface, aWidth, aHeight);
+233:  CheckJNIException(sEnv, __FUNCTION__);
+234-}
+235-
+236-
+237-void
+238-VRBrowser::DispatchCreateWidgetLayer(jint aWidgetHandle, jobject aSurface, jint aWidth, jint aHeight, const std::function<void()>& aFirstCompositeCallback) {
+239:  if (!ValidateMethodID(sEnv, sActivity, sDispatchCreateWidgetLayer, __FUNCTION__)) { return; }
+240-  jlong callback = 0;
+241-  if (aFirstCompositeCallback) {
+242-    callback = reinterpret_cast<jlong>(new std::function<void()>(aFirstCompositeCallback));
+243-  }
+244:  sEnv->CallVoidMethod(sActivity, sDispatchCreateWidgetLayer, aWidgetHandle, aSurface, aWidth, aHeight, callback);
+245:  CheckJNIException(sEnv, __FUNCTION__);
+246-}
+247-
+248-
+249-void
+250-VRBrowser::HandleMotionEvent(jint aWidgetHandle, jint aController, jboolean aFocused, jboolean aPressed, jfloat aX, jfloat aY) {
+251:  if (!ValidateMethodID(sEnv, sActivity, sHandleMotionEvent, __FUNCTION__)) { return; }
+252:  sEnv->CallVoidMethod(sActivity, sHandleMotionEvent, aWidgetHandle, aController, aFocused, aPressed, aX, aY);
+253:  CheckJNIException(sEnv, __FUNCTION__);
+254-}
+255-
+256-void
+257-VRBrowser::HandleScrollEvent(jint aWidgetHandle, jint aController, jfloat aX, jfloat aY) {
+258:  if (!ValidateMethodID(sEnv, sActivity, sHandleScrollEvent, __FUNCTION__)) { return; }
+259:  sEnv->CallVoidMethod(sActivity, sHandleScrollEvent, aWidgetHandle, aController, aX, aY);
+260:  CheckJNIException(sEnv, __FUNCTION__);
+261-}
+262-
+263-void
+264-VRBrowser::HandleAudioPose(jfloat qx, jfloat qy, jfloat qz, jfloat qw, jfloat px, jfloat py, jfloat pz) {
+265:  if (!ValidateMethodID(sEnv, sActivity, sHandleAudioPose, __FUNCTION__)) { return; }
+266:  sEnv->CallVoidMethod(sActivity, sHandleAudioPose, qx, qy, qz, qw, px, py, pz);
+267:  CheckJNIException(sEnv, __FUNCTION__);
+268-}
+269-
+270-void
+271-VRBrowser::HandleGesture(jint aType) {
+272:  if (!ValidateMethodID(sEnv, sActivity, sHandleGesture, __FUNCTION__)) { return; }
+273:  sEnv->CallVoidMethod(sActivity, sHandleGesture, aType);
+274:  CheckJNIException(sEnv, __FUNCTION__);
+275-}
+276-
+277-void
+278-VRBrowser::HandleResize(jint aWidgetHandle, jfloat aWorldWidth, jfloat aWorldHeight) {
+279:  if (!ValidateMethodID(sEnv, sActivity, sHandleResize, __FUNCTION__)) { return; }
+280:  sEnv->CallVoidMethod(sActivity, sHandleResize, aWidgetHandle, aWorldWidth, aWorldHeight);
+281:  CheckJNIException(sEnv, __FUNCTION__);
+282-}
+283-
+284-void
+285-VRBrowser::HandleMoveEnd(jint aWidgetHandle, jfloat aX, jfloat aY, jfloat aZ, jfloat aRotation) {
+286:  if (!ValidateMethodID(sEnv, sActivity, sHandleMoveEnd, __FUNCTION__)) { return; }
+287:  sEnv->CallVoidMethod(sActivity, sHandleMoveEnd, aWidgetHandle, aX, aY, aZ, aRotation);
+288:  CheckJNIException(sEnv, __FUNCTION__);
+289-}
+290-
+291-void
+292-VRBrowser::HandleBack() {
+293:  if (!ValidateMethodID(sEnv, sActivity, sHandleBack, __FUNCTION__)) { return; }
+294:  sEnv->CallVoidMethod(sActivity, sHandleBack);
+295:  CheckJNIException(sEnv, __FUNCTION__);
+296-}
+297-
+298-void
+299-VRBrowser::HandleAppExit() {
+300:  if (!ValidateMethodID(sEnv, sActivity, sHandleAppExit, __FUNCTION__)) { return; }
+301:  sEnv->CallVoidMethod(sActivity, sHandleAppExit);
+302:  CheckJNIException(sEnv, __FUNCTION__);
+303-}
+304-
+305-void
+306-VRBrowser::RegisterExternalContext(jlong aContext) {
+307:  if (!ValidateMethodID(sEnv, sActivity, sRegisterExternalContext, __FUNCTION__)) { return; }
+308:  sEnv->CallVoidMethod(sActivity, sRegisterExternalContext, aContext);
+309:  CheckJNIException(sEnv, __FUNCTION__);
+310-}
+311-
+312-void
+313-VRBrowser::OnEnterWebXR() {
+314:  if (!ValidateMethodID(sEnv, sActivity, sOnEnterWebXR, __FUNCTION__)) { return; }
+315:  sEnv->CallVoidMethod(sActivity, sOnEnterWebXR);
+316:  CheckJNIException(sEnv, __FUNCTION__);
+317-}
+318-
+319-void
+320-VRBrowser::OnExitWebXR(const std::function<void()>& aCallback) {
+321:  if (!ValidateMethodID(sEnv, sActivity, sOnExitWebXR, __FUNCTION__)) { return; }
+322-  jlong callback = 0;
+323-  if (aCallback) {
+324-    callback = reinterpret_cast<jlong>(new std::function<void()>(aCallback));
+325-  }
+326:  sEnv->CallVoidMethod(sActivity, sOnExitWebXR, callback);
+327:  CheckJNIException(sEnv, __FUNCTION__);
+328-}
+329-
+330-void VRBrowser::OnDismissWebXRInterstitial() {
+331:  if (!ValidateMethodID(sEnv, sActivity, sOnDismissWebXRInterstitial, __FUNCTION__)) { return; }
+332:  sEnv->CallVoidMethod(sActivity, sOnDismissWebXRInterstitial);
+333:  CheckJNIException(sEnv, __FUNCTION__);
+334-}
+335-
+336-void VRBrowser::OnWebXRRenderStateChange(const bool aRendering) {
+337:  if (!ValidateMethodID(sEnv, sActivity, sOnWebXRRenderStateChange, __FUNCTION__)) { return; }
+338:  sEnv->CallVoidMethod(sActivity, sOnWebXRRenderStateChange, (jboolean) aRendering);
+339:  CheckJNIException(sEnv, __FUNCTION__);
+340-}
+341-
+342-void
+343-VRBrowser::RenderPointerLayer(jobject aSurface, const int32_t color, const std::function<void()>& aFirstCompositeCallback) {
+344:  if (!ValidateMethodID(sEnv, sActivity, sRenderPointerLayer, __FUNCTION__)) { return; }
+345-  jlong callback = 0;
+346-  if (aFirstCompositeCallback) {
+347-    callback = reinterpret_cast<jlong>(new std::function<void()>(aFirstCompositeCallback));
+348-  }
+349:  sEnv->CallVoidMethod(sActivity, sRenderPointerLayer, aSurface, color, callback);
+350:  CheckJNIException(sEnv, __FUNCTION__);
+351-}
+352-
+353-std::string
+354-VRBrowser::GetStorageAbsolutePath(const std::string& aRelativePath) {
+355:  if (!ValidateMethodID(sEnv, sActivity, sGetStorageAbsolutePath, __FUNCTION__)) { return ""; }
+356:  jstring jStr = (jstring) sEnv->CallObjectMethod(sActivity, sGetStorageAbsolutePath);
+357:  CheckJNIException(sEnv, __FUNCTION__);
+358-  if (!jStr) {
+359-    return aRelativePath;
+360-  }
+361-
+362:  const char *cstr = sEnv->GetStringUTFChars(jStr, nullptr);
+363-  std::string str = std::string(cstr);
+364:  sEnv->ReleaseStringUTFChars(jStr, cstr);
+365-
+366-  if (aRelativePath.empty()) {
+367-    return str;
+368-  } else {
+369-    return str + "/" + aRelativePath;
+370-  }
+371-}
+372-
+373-bool
+374-VRBrowser::isOverrideEnvPathEnabled() {
+375:  if (!ValidateMethodID(sEnv, sActivity, sIsOverrideEnvPathEnabled, __FUNCTION__)) { return false; }
+376:  jboolean jBool = sEnv->CallBooleanMethod(sActivity, sIsOverrideEnvPathEnabled);
+377:  CheckJNIException(sEnv, __FUNCTION__);
+378-
+379-  return jBool;
+380-}
+381-
+382-void
+383-VRBrowser::CheckTogglePassthrough() {
+384:  if (!ValidateMethodID(sEnv, sActivity, sCheckTogglePassthrough, __FUNCTION__)) { return; }
+385:  sEnv->CallVoidMethod(sActivity, sCheckTogglePassthrough);
+386:  CheckJNIException(sEnv, __FUNCTION__);
+387-}
+388-
+389-void
+390-VRBrowser::ResetWindowsPosition() {
+391:  if (!ValidateMethodID(sEnv, sActivity, sResetWindowsPosition, __FUNCTION__)) { return; }
+392:  sEnv->CallVoidMethod(sActivity, sResetWindowsPosition);
+393:  CheckJNIException(sEnv, __FUNCTION__);
+394-}
+395-
+396-std::string
+397-VRBrowser::GetActiveEnvironment() {
+398:  if (!ValidateMethodID(sEnv, sActivity, sGetActiveEnvironment, __FUNCTION__)) { return ""; }
+399:  jstring jStr = (jstring) sEnv->CallObjectMethod(sActivity, sGetActiveEnvironment);
+400:  CheckJNIException(sEnv, __FUNCTION__);
+401-  if (!jStr) {
+402-    return "cubemap/day";
+403-  }
+404-
+405:  const char *cstr = sEnv->GetStringUTFChars(jStr, nullptr);
+406-  std::string str = std::string(cstr);
+407:  sEnv->ReleaseStringUTFChars(jStr, cstr);
+408-
+409-  return str;
+410-}
+411-
+412-int32_t
+413-VRBrowser::GetPointerColor() {
+414:  if (!ValidateMethodID(sEnv, sActivity, sGetPointerColor, __FUNCTION__)) { return 16777215; }
+415:  jint jHexColor = (jint) sEnv->CallIntMethod(sActivity, sGetPointerColor);
+416:  CheckJNIException(sEnv, __FUNCTION__);
+417-
+418-  return (int32_t )jHexColor;
+419-}
+420-
+421-void
+422-VRBrowser::SetDeviceType(const jint aType) {
+423:  if (!ValidateMethodID(sEnv, sActivity, sSetDeviceType, __FUNCTION__)) { return; }
+424:  sEnv->CallVoidMethod(sActivity, sSetDeviceType, aType);
+425:  CheckJNIException(sEnv, __FUNCTION__);
+426-}
+427-
+428-void
+429-VRBrowser::HaltActivity(const jint aReason) {
+430:  if (!ValidateMethodID(sEnv, sActivity, sHaltActivity, __FUNCTION__)) { return; }
+431:  sEnv->CallVoidMethod(sActivity, sHaltActivity, aReason);
+432:  CheckJNIException(sEnv, __FUNCTION__);
+433-}
+434-
+435-void
+436-VRBrowser::HandlePoorPerformance() {
+437:  if (!ValidateMethodID(sEnv, sActivity, sHandlePoorPerformance, __FUNCTION__)) { return; }
+438:  sEnv->CallVoidMethod(sActivity, sHandlePoorPerformance);
+439:  CheckJNIException(sEnv, __FUNCTION__);
+440-}
+441-
+442-void
+443-VRBrowser::OnAppLink(const std::string& aJSON) {
+444:  if (!ValidateMethodID(sEnv, sActivity, sOnAppLink, __FUNCTION__)) { return; }
+445:  jstring json = sEnv->NewStringUTF(aJSON.c_str());
+446:  sEnv->CallVoidMethod(sActivity, sOnAppLink, json);
+447:  sEnv->DeleteLocalRef(json);
+448:  CheckJNIException(sEnv, __FUNCTION__);
+449-}
+450-
+451-void
+452-VRBrowser::DisableLayers() {
+453:  if (!ValidateMethodID(sEnv, sActivity, sDisableLayers, __FUNCTION__)) { return; }
+454:  sEnv->CallVoidMethod(sActivity, sDisableLayers);
+455:  CheckJNIException(sEnv, __FUNCTION__);
+456-}
+457-
+458-void
+459-VRBrowser::AppendAppNotesToCrashLog(const std::string& aNotes) {
+460:  if (!ValidateMethodID(sEnv, sActivity, sAppendAppNotesToCrashReport, __FUNCTION__)) { return; }
+461:  jstring notes = sEnv->NewStringUTF(aNotes.c_str());
+462:  sEnv->CallVoidMethod(sActivity, sAppendAppNotesToCrashReport, notes);
+463:  sEnv->DeleteLocalRef(notes);
+464:  CheckJNIException(sEnv, __FUNCTION__);
+465-}
+466-
+467-void
+468-VRBrowser::UpdateControllerBatteryLevels(const jint aLeftBatteryLevel, const jint aRightBatteryLevel) {
+469:  if (!ValidateMethodID(sEnv, sActivity, sUpdateControllerBatteryLevels, __FUNCTION__)) { return; }
+470:  sEnv->CallVoidMethod(sActivity, sUpdateControllerBatteryLevels, aLeftBatteryLevel, aRightBatteryLevel);
+471:  CheckJNIException(sEnv, __FUNCTION__);
+472-}
+473-
+474-void
+475-VRBrowser::OnAppFocusChanged(const bool aIsFocused) {
+476:  if (!ValidateMethodID(sEnv, sActivity, sOnAppFocusChanged, __FUNCTION__)) { return; }
+477:  sEnv->CallVoidMethod(sActivity, sOnAppFocusChanged, (jboolean) aIsFocused);
+478:  CheckJNIException(sEnv, __FUNCTION__);
+479-}
+480-
+481-// implement the SetEyeTrackingSupported method
+482-void
+483-VRBrowser::SetEyeTrackingSupported(bool aIsSupported) {
+484:    if (!ValidateMethodID(sEnv, sActivity, sSetEyeTrackingSupported, __FUNCTION__)) { return; }
+485:    sEnv->CallVoidMethod(sActivity, sSetEyeTrackingSupported, (jboolean) aIsSupported);
+486:    CheckJNIException(sEnv, __FUNCTION__);
+487-}
+488-
+489-void
+490-VRBrowser::SetHandTrackingSupported(bool aIsSupported) {
+491:    if (!ValidateMethodID(sEnv, sActivity, sSetHandTrackingSupported, __FUNCTION__)) { return; }
+492:    sEnv->CallVoidMethod(sActivity, sSetHandTrackingSupported, (jboolean) aIsSupported);
+493:    CheckJNIException(sEnv, __FUNCTION__);
+494-}
+495-
+496-void
+497-VRBrowser::OnControllersAvailable() {
+498:    if (!ValidateMethodID(sEnv, sActivity, sOnControllersAvailable, __FUNCTION__)) { return; }
+499:    sEnv->CallVoidMethod(sActivity, sOnControllersAvailable);
+500:    CheckJNIException(sEnv, __FUNCTION__);
+501-
+502-}
+503-
+504-void
+505-VRBrowser::ChangeWindowDistance(jfloat aDelta) {
+506:    if (!ValidateMethodID(sEnv, sActivity, sChangeWindowDistance, __FUNCTION__)) { return; }
+507:    sEnv->CallVoidMethod(sActivity, sChangeWindowDistance, aDelta);
+508:    CheckJNIException(sEnv, __FUNCTION__);
+509-}
+510-
+511-void
+512-VRBrowser::OnMaxCompositionLayersAvailable(jint aNumLayers) {
+513:    if (!ValidateMethodID(sEnv, sActivity, sOnMaxCompositionLayersAvailable, __FUNCTION__)) { return; }
+514:    sEnv->CallVoidMethod(sActivity, sOnMaxCompositionLayersAvailable, aNumLayers);
+515:    CheckJNIException(sEnv, __FUNCTION__);
+516-}
+517-
+518-} // namespace crow

@@ -10,6 +10,8 @@
 
 namespace {
 
+const char* const kProcessSegmentationFrameName = "processModnetFrame"; //r800zz
+const char* const kProcessSegmentationFrameSignature = "([BII)V"; //r800zz
 const char* const kDispatchCreateWidgetName = "dispatchCreateWidget";
 const char* const kDispatchCreateWidgetSignature = "(ILandroid/graphics/SurfaceTexture;II)V";
 const char* const kDispatchCreateWidgetLayerName = "dispatchCreateWidgetLayer";
@@ -84,6 +86,7 @@ const char* const kOnMaxCompositionLayersAvailableSignature = "(I)V";
 JNIEnv* sEnv = nullptr;
 jclass sBrowserClass = nullptr;
 jobject sActivity = nullptr;
+jmethodID sProcessSegmentationFrame = nullptr; //r800zz
 jmethodID sDispatchCreateWidget = nullptr;
 jmethodID sDispatchCreateWidgetLayer = nullptr;
 jmethodID sHandleMotionEvent = nullptr;
@@ -174,6 +177,38 @@ VRBrowser::InitializeJava(JNIEnv* aEnv, jobject aActivity) {
   sOnControllersAvailable = FindJNIMethodID(sEnv, sBrowserClass, kOnControllersAvailable, kOnControllersAvailableSignature);
   sChangeWindowDistance = FindJNIMethodID(sEnv, sBrowserClass, kChangeWindowDistance, kChangeWindowDistanceSignature);
   sOnMaxCompositionLayersAvailable = FindJNIMethodID(sEnv, sBrowserClass, kOnMaxCompositionLayersAvailableName, kOnMaxCompositionLayersAvailableSignature);
+
+  sProcessSegmentationFrame =
+    FindJNIMethodID(sEnv, sBrowserClass,
+                    kProcessSegmentationFrameName,
+                    kProcessSegmentationFrameSignature); //r800zz
+}
+
+//r800zz
+void
+VRBrowser::ProcessSegmentationFrame(const unsigned char* aPixels,
+                                    jint aWidth,
+                                    jint aHeight) {
+  if (!ValidateMethodID(sEnv, sActivity, sProcessSegmentationFrame, __FUNCTION__)) {
+    return;
+  }
+
+  const jsize size = aWidth * aHeight * 4;
+  jbyteArray pixels = sEnv->NewByteArray(size);
+  if (!pixels) {
+    return;
+  }
+
+  sEnv->SetByteArrayRegion(
+      pixels, 0, size,
+      reinterpret_cast<const jbyte*>(aPixels));
+
+  sEnv->CallVoidMethod(
+      sActivity, sProcessSegmentationFrame,
+      pixels, aWidth, aHeight);
+
+  sEnv->DeleteLocalRef(pixels);
+  CheckJNIException(sEnv, __FUNCTION__);
 }
 
 JNIEnv * VRBrowser::Env()
@@ -224,6 +259,7 @@ VRBrowser::ShutdownJava() {
   sAppendAppNotesToCrashReport = nullptr;
   sChangeWindowDistance = nullptr;
   sOnMaxCompositionLayersAvailable = nullptr;
+  sProcessSegmentationFrame = nullptr; //r800zz
 }
 
 void

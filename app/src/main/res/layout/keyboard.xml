@@ -11,7 +11,7 @@
             android:layout_marginTop="0dp"
             android:orientation="horizontal">
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/keyboardVoiceButton"
                 style="?attr/navigationBarButtonStyle"
                 android:layout_gravity="top"
@@ -24,7 +24,7 @@
                 android:layout_width="@dimen/keyboard_alphabetic_width"
                 android:layout_height="match_parent">
 
-                <com.igalia.wolvic.ui.views.CustomKeyboardView
+                <com.r800zz.r800zzbrowser.ui.views.CustomKeyboardView
                     android:id="@+id/keyboard"
                     android:padding="15dp"
                     android:background="@drawable/keyboard_background"
@@ -46,7 +46,7 @@
                     android:alpha="0.5"
                     android:visibility="visible"/>
 
-                <com.igalia.wolvic.ui.views.CustomKeyboardView
+                <com.r800zz.r800zzbrowser.ui.views.CustomKeyboardView
                     android:id="@+id/popupKeyboard"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -57,7 +57,7 @@
                     android:verticalCorrection="0dp"
                     android:visibility="visible"/>
 
-                <com.igalia.wolvic.ui.views.KeyboardSelectorView
+                <com.r800zz.r800zzbrowser.ui.views.KeyboardSelectorView
                     android:id="@+id/langSelectorView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -67,7 +67,7 @@
                     android:layout_marginStart="20dp"
                     android:visibility="gone"/>
 
-                <com.igalia.wolvic.ui.views.KeyboardSelectorView
+                <com.r800zz.r800zzbrowser.ui.views.KeyboardSelectorView
                     android:id="@+id/domainSelectorView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -86,7 +86,7 @@
             <FrameLayout
                 android:layout_width="@dimen/keyboard_numeric_width"
                 android:layout_height="match_parent">
-                <com.igalia.wolvic.ui.views.CustomKeyboardView
+                <com.r800zz.r800zzbrowser.ui.views.CustomKeyboardView
                     android:id="@+id/keyboardNumeric"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -107,7 +107,7 @@
                     android:visibility="gone"/>
             </FrameLayout>
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/keyboardCloseButton"
                 style="?attr/navigationBarButtonStyle"
                 android:layout_gravity="top"
@@ -138,7 +138,7 @@
                 android:radius="4dp" />
         </FrameLayout>
 
-        <com.igalia.wolvic.ui.views.AutoCompletionView
+        <com.r800zz.r800zzbrowser.ui.views.AutoCompletionView
             android:id="@+id/autoCompletionView"
             android:layout_width="match_parent"
             android:layout_height="@dimen/autocompletion_widget_line_height"

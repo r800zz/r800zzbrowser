@@ -7,10 +7,10 @@
 
         <variable
             name="settingsmodel"
-            type="com.igalia.wolvic.ui.viewmodel.SettingsViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.SettingsViewModel" />
     </data>
 
-    <com.igalia.wolvic.ui.views.CustomScrollView
+    <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
         android:id="@+id/scrollbar"
         style="@style/customScrollViewStyle"
         android:layout_width="match_parent"
@@ -23,16 +23,16 @@
 
             <!-- Header -->
 
-            <com.igalia.wolvic.ui.views.UIButton
+            <com.r800zz.r800zzbrowser.ui.views.UIButton
                 android:id="@+id/logo"
                 style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="80dp"
                 android:layout_gravity="center"
-                android:background="@drawable/wolvic_header_bg"
+                android:background="@drawable/r800zzbrowser_header_bg"
                 android:padding="8dp"
                 android:scaleType="fitCenter"
-                android:src="@drawable/wolvic_header"
+                android:src="@drawable/r800zzbrowser_header"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -55,7 +55,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/logo" />
 
-            <com.igalia.wolvic.ui.views.ExpandedRecyclerView
+            <com.r800zz.r800zzbrowser.ui.views.ExpandedRecyclerView
                 android:id="@+id/announcements_list"
                 style="@style/customRecyclerViewStyle"
                 android:layout_width="wrap_content"
@@ -66,7 +66,7 @@
                 android:scrollbars="none"
                 android:visibility="@{settingsmodel.visibleAnnouncements.announcements.size() > 0 ? android.view.View.VISIBLE : android.view.View.GONE}"
                 app:customFastScrollEnabled="false"
-                app:layoutManager="com.igalia.wolvic.ui.views.NonScrollingGridLayoutManager"
+                app:layoutManager="com.r800zz.r800zzbrowser.ui.views.NonScrollingGridLayoutManager"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/announcements_header"
@@ -76,7 +76,7 @@
 
             <!-- Top sites -->
 
-            <com.igalia.wolvic.ui.views.ExpandedRecyclerView
+            <com.r800zz.r800zzbrowser.ui.views.ExpandedRecyclerView
                 android:id="@+id/top_sites_list"
                 style="@style/customRecyclerViewStyle"
                 android:layout_width="wrap_content"
@@ -89,7 +89,7 @@
                 android:paddingEnd="16dp"
                 android:scrollbars="none"
                 app:customFastScrollEnabled="false"
-                app:layoutManager="com.igalia.wolvic.ui.views.NonScrollingGridLayoutManager"
+                app:layoutManager="com.r800zz.r800zzbrowser.ui.views.NonScrollingGridLayoutManager"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/announcements_list"
@@ -99,7 +99,7 @@
 
             <!-- Experiences -->
 
-            <com.igalia.wolvic.ui.views.ExpandedRecyclerView
+            <com.r800zz.r800zzbrowser.ui.views.ExpandedRecyclerView
                 android:id="@+id/experiences_list"
                 style="@style/customRecyclerViewStyle"
                 android:layout_width="wrap_content"
@@ -110,7 +110,7 @@
                 android:nestedScrollingEnabled="false"
                 android:scrollbars="none"
                 app:customFastScrollEnabled="false"
-                app:layoutManager="com.igalia.wolvic.ui.views.NonScrollingGridLayoutManager"
+                app:layoutManager="com.r800zz.r800zzbrowser.ui.views.NonScrollingGridLayoutManager"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/top_sites_list"
@@ -121,6 +121,6 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-    </com.igalia.wolvic.ui.views.CustomScrollView>
+    </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
 </layout>

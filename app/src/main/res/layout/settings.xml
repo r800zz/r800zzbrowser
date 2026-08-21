@@ -6,9 +6,9 @@
     <data>
         <variable
             name="settingsmodel"
-            type="com.igalia.wolvic.ui.viewmodel.SettingsViewModel" />
-        <import type="com.igalia.wolvic.BuildConfig"/>
-        <import type="com.igalia.wolvic.utils.DeviceType" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.SettingsViewModel" />
+        <import type="com.r800zz.r800zzbrowser.BuildConfig"/>
+        <import type="com.r800zz.r800zzbrowser.utils.DeviceType" />
     </data>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -151,35 +151,35 @@
                         android:layout_height="wrap_content"
                         android:orientation="horizontal">
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/languageButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_settings_language"
                             app:honeycombButtonText="@string/settings_language"
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width" />
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/displayButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_settings_display"
                             app:honeycombButtonText="@string/settings_display"
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width" />
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/privacyButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_settings_privacypolicy"
                             app:honeycombButtonText="@string/settings_privacy_security"
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width" />
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/developerOptionsButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_settings_developeroptions"
                             app:honeycombButtonText="@string/settings_developer_options"
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width" />
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/fxaButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_icon_settings_account"
@@ -199,14 +199,14 @@
                         android:layout_marginTop="-28dp"
                         android:orientation="horizontal">
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/environmentButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_settings_environment"
                             app:honeycombButtonText="@string/developer_options_environments"
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width" />
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/controllerOptionsButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_settings_controlleroptions"
@@ -215,7 +215,7 @@
                             app:honeycombButtonText="@string/settings_controller_options"
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width" />
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/addonsButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_icon_addons"
@@ -223,7 +223,7 @@
                             app:honeycombButtonTextSize="@dimen/settings_main_button_text_width"
                             app:visibleGone="@{BuildConfig.FLAVOR_backend != &quot;chromium&quot;}"/>
 
-                        <com.igalia.wolvic.ui.views.HoneycombButton
+                        <com.r800zz.r800zzbrowser.ui.views.HoneycombButton
                             android:id="@+id/helpButton"
                             style="?attr/honeycombButtonStyle"
                             app:honeycombButtonIcon="@drawable/ic_settings_help"

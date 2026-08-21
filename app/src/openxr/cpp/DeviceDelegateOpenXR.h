@@ -27,6 +27,8 @@ public:
   device::DeviceType GetDeviceType() override;
   void SetRenderMode(const device::RenderMode aMode) override;
   device::RenderMode GetRenderMode() override;
+void SetImmersiveXRSessionType(
+    const ImmersiveXRSessionType aSessionType) override;
   void RegisterImmersiveDisplay(ImmersiveDisplayPtr aDisplay) override;
   void SetImmersiveSize(const uint32_t aEyeWidth, const uint32_t aEyeHeight) override;
   GestureDelegateConstPtr GetGestureDelegate() override { return nullptr; }

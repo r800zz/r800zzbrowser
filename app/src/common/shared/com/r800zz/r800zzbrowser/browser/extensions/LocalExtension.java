@@ -1,0 +1,38 @@
+/* -*- Mode: Java; c-basic-offset: 4; tab-width: 4; indent-tabs-mode: nil; -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+package com.r800zz.r800zzbrowser.browser.extensions;
+
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import com.r800zz.r800zzbrowser.browser.Addons;
+import com.r800zz.r800zzbrowser.utils.SystemUtils;
+
+import mozilla.components.concept.engine.webextension.InstallationMethod;
+import mozilla.components.concept.engine.webextension.WebExtensionRuntime;
+
+/**
+ * Feature to install extensions from downloaded extension files.
+ */
+public class LocalExtension {
+
+    private static final String LOGTAG = SystemUtils.createLogtag(LocalExtension.class);
+
+    /**
+     * Installs the web extension through the WebExtensionRuntime install method
+     */
+    public static void install(@NonNull WebExtensionRuntime runtime, @NonNull String extensionId, @NonNull String extensionUrl, Addons addons) {
+        runtime.installWebExtension(extensionUrl, InstallationMethod.FROM_FILE, webExtension -> {
+            Log.i(LOGTAG, extensionId + " from " + extensionUrl + " Web Extension successfully installed");
+            addons.notifyListeners();
+            return null;
+        }, (throwable) -> {
+            Log.e(LOGTAG, "Error installing the " + extensionId + " from " + extensionUrl + " Web Extension: " + throwable.getLocalizedMessage());
+            return null;
+        });
+    }
+}

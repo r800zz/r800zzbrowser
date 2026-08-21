@@ -1,0 +1,53 @@
+package com.r800zz.r800zzbrowser.ui.widgets.dialogs;
+
+import android.content.Context;
+
+import androidx.annotation.NonNull;
+
+import com.r800zz.r800zzbrowser.R;
+import com.r800zz.r800zzbrowser.browser.engine.SessionStore;
+import com.r800zz.r800zzbrowser.ui.adapters.WebApp;
+import com.r800zz.r800zzbrowser.utils.StringUtils;
+
+import mozilla.components.browser.icons.IconRequest;
+
+public class InstallWebAppDialogWidget extends PromptDialogWidget {
+
+    private final WebApp mWebApp;
+
+    public InstallWebAppDialogWidget(@NonNull Context aContext, @NonNull WebApp webApp) {
+        super(aContext);
+
+        mWebApp = webApp;
+
+        initialize(aContext);
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
+        setButtons(new int[]{
+                R.string.web_apps_dialog_cancel,
+                R.string.web_apps_dialog_install
+        });
+        setCheckboxVisible(false);
+        setBody(R.string.web_apps_dialog_body);
+
+        // this may happen when the object is created
+        if (mWebApp == null) {
+            return;
+        }
+
+        if (!StringUtils.isEmpty(mWebApp.getShortName())) {
+            setTitle(getContext().getString(R.string.web_apps_dialog_title_parameter, mWebApp.getShortName()));
+        } else if (!StringUtils.isEmpty(mWebApp.getName())) {
+            setTitle(getContext().getString(R.string.web_apps_dialog_title_parameter, mWebApp.getName()));
+        } else {
+            setTitle(R.string.web_apps_dialog_title);
+        }
+
+        SessionStore.get().getBrowserIcons().loadIntoView(mBinding.icon,
+                mWebApp.getStartUrl(), mWebApp.getIconResources(), IconRequest.Size.LAUNCHER);
+    }
+}

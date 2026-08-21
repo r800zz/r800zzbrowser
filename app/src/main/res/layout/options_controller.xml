@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-        <import type="com.igalia.wolvic.BuildConfig"/>
+        <import type="com.r800zz.r800zzbrowser.BuildConfig"/>
         <import type="android.view.View" />
     </data>
 
@@ -15,7 +15,7 @@
         android:paddingStart="30dp"
         android:paddingEnd="30dp">
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsHeader
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsHeader
             android:id="@+id/header_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -26,7 +26,7 @@
             app:title="@string/settings_controller_options" />
 
         <!-- ScrollView doesn't support fast scrollbar so we need to use a custom implementation -->
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/scrollbar"
             style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
@@ -45,7 +45,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupSetting
                     android:id="@+id/pointer_mode_radio"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -53,20 +53,20 @@
                     app:options="@array/developer_options_pointer_modes"
                     app:values="@array/developer_options_pointer_modes_values" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/soundEffectSwitch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:visibility="@{BuildConfig.FLAVOR_backend == &quot;chromium&quot; ? View.VISIBLE : View.GONE}"
                     app:description="@string/display_options_sound_effect" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/haptic_feedback_switch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     app:description="@string/controller_options_haptic_feedback" />
 
-                <com.igalia.wolvic.ui.views.settings.SwitchSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.SwitchSetting
                     android:id="@+id/handtracking_switch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -102,7 +102,7 @@
 
                 </RelativeLayout>
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupVSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupVSetting
                     android:id="@+id/window_selection_radio"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -111,7 +111,7 @@
                     app:options="@array/controller_options_window_selection"
                     app:values="@array/controller_options_window_selection_values" />
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupVSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupVSetting
                     android:id="@+id/pointer_color_radio"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -120,7 +120,7 @@
                     app:options="@array/developer_options_pointer_colors"
                     app:values="@array/developer_options_pointer_colors_values" />
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupVSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupVSetting
                     android:id="@+id/scroll_direction_radio"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -130,9 +130,9 @@
                     app:values="@array/developer_options_pointer_scroll_direction_values" />
 
             </LinearLayout>
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsFooter
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsFooter
             android:id="@+id/footer_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

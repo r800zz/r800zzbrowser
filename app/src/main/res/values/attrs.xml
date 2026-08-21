@@ -155,7 +155,7 @@
     </declare-styleable>
     <!-- {Copied from com.android.internal.R} -->
     <declare-styleable name="KeyboardViewPreviewState">
-        <!-- State for {@link com.igalia.wolvic.input.KeyboardView KeyboardView}
+        <!-- State for {@link com.r800zz.r800zzbrowser.input.KeyboardView KeyboardView}
                 key preview background.
              {Copied from com.android.internal.R} -->
         <attr name="state_long_pressable" format="boolean" />

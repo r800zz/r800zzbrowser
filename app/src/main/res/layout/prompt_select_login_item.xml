@@ -8,7 +8,7 @@
             type="mozilla.components.concept.storage.Login" />
         <variable
             name="delegate"
-            type="com.igalia.wolvic.ui.adapters.LoginsAdapter.Delegate" />
+            type="com.r800zz.r800zzbrowser.ui.adapters.LoginsAdapter.Delegate" />
     </data>
 
     <FrameLayout

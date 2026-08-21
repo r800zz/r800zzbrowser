@@ -10,7 +10,7 @@
         android:paddingStart="30dp"
         android:paddingEnd="30dp">
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsHeader
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsHeader
             android:id="@+id/header_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -21,7 +21,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:title="@string/settings_privacy_search_engine_title" />
 
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/scrollbar"
             style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
@@ -51,16 +51,16 @@
                     android:textAlignment="center"
                     android:text="@string/custom_search_engines_manage" />
 
-                <com.igalia.wolvic.ui.views.settings.RadioGroupVSetting
+                <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupVSetting
                     android:id="@+id/searchEngineRadio"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     app:layout="@layout/setting_radio_group_v" />
 
             </LinearLayout>
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
-        <com.igalia.wolvic.ui.widgets.settings.SettingsFooter
+        <com.r800zz.r800zzbrowser.ui.widgets.settings.SettingsFooter
             android:id="@+id/footer_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

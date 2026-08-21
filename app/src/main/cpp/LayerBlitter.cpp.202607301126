@@ -1,0 +1,494 @@
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "LayerBlitter.h"
+
+#include "vrb/ConcreteClass.h"
+#include "vrb/private/ResourceGLState.h"
+#include "vrb/GLError.h"
+#include "vrb/ShaderUtil.h"
+#include "vrb/TextureSurface.h"
+#include "vrb/gl.h"
+
+namespace {
+
+const char* sVertexShader = R"SHADER(
+attribute vec4 a_position;
+attribute vec2 a_uv;
+varying vec2 v_uv;
+
+void main() {
+  v_uv = a_uv;
+  gl_Position = a_position;
+}
+)SHADER";
+
+#if defined(PICOXR)
+const char* sFragmentShader = R"SHADER(
+#extension GL_OES_EGL_image_external : require
+precision mediump float;
+
+uniform samplerExternalOES u_texture0;
+uniform float u_flipY; //r800zz
+uniform float u_chromaKeyEnabled;
+uniform float u_flatToEquirectEnabled; //r800zz
+uniform float u_autoChromaEnabled; //r800zz;
+
+varying vec2 v_uv;
+
+float colorDistance(vec3 a, vec3 b) {
+  vec3 d = a - b;
+  return dot(d, d);
+}
+
+vec3 detectBackgroundColor() {
+  // Sample positions near the outer area, but not directly at the corners.
+  vec3 c0 = texture2D(u_texture0, vec2(0.08, 0.12)).rgb;
+  vec3 c1 = texture2D(u_texture0, vec2(0.35, 0.10)).rgb;
+  vec3 c2 = texture2D(u_texture0, vec2(0.65, 0.10)).rgb;
+  vec3 c3 = texture2D(u_texture0, vec2(0.92, 0.12)).rgb;
+
+  vec3 c4 = texture2D(u_texture0, vec2(0.08, 0.88)).rgb;
+  vec3 c5 = texture2D(u_texture0, vec2(0.35, 0.90)).rgb;
+  vec3 c6 = texture2D(u_texture0, vec2(0.65, 0.90)).rgb;
+  vec3 c7 = texture2D(u_texture0, vec2(0.92, 0.88)).rgb;
+
+  const float similarityThreshold = 0.035;
+
+  float s0 =
+      float(colorDistance(c0, c1) < similarityThreshold) +
+      float(colorDistance(c0, c2) < similarityThreshold) +
+      float(colorDistance(c0, c3) < similarityThreshold) +
+      float(colorDistance(c0, c4) < similarityThreshold) +
+      float(colorDistance(c0, c5) < similarityThreshold) +
+      float(colorDistance(c0, c6) < similarityThreshold) +
+      float(colorDistance(c0, c7) < similarityThreshold);
+
+  float s1 =
+      float(colorDistance(c1, c0) < similarityThreshold) +
+      float(colorDistance(c1, c2) < similarityThreshold) +
+      float(colorDistance(c1, c3) < similarityThreshold) +
+      float(colorDistance(c1, c4) < similarityThreshold) +
+      float(colorDistance(c1, c5) < similarityThreshold) +
+      float(colorDistance(c1, c6) < similarityThreshold) +
+      float(colorDistance(c1, c7) < similarityThreshold);
+
+  float s2 =
+      float(colorDistance(c2, c0) < similarityThreshold) +
+      float(colorDistance(c2, c1) < similarityThreshold) +
+      float(colorDistance(c2, c3) < similarityThreshold) +
+      float(colorDistance(c2, c4) < similarityThreshold) +
+      float(colorDistance(c2, c5) < similarityThreshold) +
+      float(colorDistance(c2, c6) < similarityThreshold) +
+      float(colorDistance(c2, c7) < similarityThreshold);
+
+  float s3 =
+      float(colorDistance(c3, c0) < similarityThreshold) +
+      float(colorDistance(c3, c1) < similarityThreshold) +
+      float(colorDistance(c3, c2) < similarityThreshold) +
+      float(colorDistance(c3, c4) < similarityThreshold) +
+      float(colorDistance(c3, c5) < similarityThreshold) +
+      float(colorDistance(c3, c6) < similarityThreshold) +
+      float(colorDistance(c3, c7) < similarityThreshold);
+
+  float s4 =
+      float(colorDistance(c4, c0) < similarityThreshold) +
+      float(colorDistance(c4, c1) < similarityThreshold) +
+      float(colorDistance(c4, c2) < similarityThreshold) +
+      float(colorDistance(c4, c3) < similarityThreshold) +
+      float(colorDistance(c4, c5) < similarityThreshold) +
+      float(colorDistance(c4, c6) < similarityThreshold) +
+      float(colorDistance(c4, c7) < similarityThreshold);
+
+  float s5 =
+      float(colorDistance(c5, c0) < similarityThreshold) +
+      float(colorDistance(c5, c1) < similarityThreshold) +
+      float(colorDistance(c5, c2) < similarityThreshold) +
+      float(colorDistance(c5, c3) < similarityThreshold) +
+      float(colorDistance(c5, c4) < similarityThreshold) +
+      float(colorDistance(c5, c6) < similarityThreshold) +
+      float(colorDistance(c5, c7) < similarityThreshold);
+
+  float s6 =
+      float(colorDistance(c6, c0) < similarityThreshold) +
+      float(colorDistance(c6, c1) < similarityThreshold) +
+      float(colorDistance(c6, c2) < similarityThreshold) +
+      float(colorDistance(c6, c3) < similarityThreshold) +
+      float(colorDistance(c6, c4) < similarityThreshold) +
+      float(colorDistance(c6, c5) < similarityThreshold) +
+      float(colorDistance(c6, c7) < similarityThreshold);
+
+  float s7 =
+      float(colorDistance(c7, c0) < similarityThreshold) +
+      float(colorDistance(c7, c1) < similarityThreshold) +
+      float(colorDistance(c7, c2) < similarityThreshold) +
+      float(colorDistance(c7, c3) < similarityThreshold) +
+      float(colorDistance(c7, c4) < similarityThreshold) +
+      float(colorDistance(c7, c5) < similarityThreshold) +
+      float(colorDistance(c7, c6) < similarityThreshold);
+
+  vec3 candidate = c0;
+  float bestScore = s0;
+
+  if (s1 > bestScore) { candidate = c1; bestScore = s1; }
+  if (s2 > bestScore) { candidate = c2; bestScore = s2; }
+  if (s3 > bestScore) { candidate = c3; bestScore = s3; }
+  if (s4 > bestScore) { candidate = c4; bestScore = s4; }
+  if (s5 > bestScore) { candidate = c5; bestScore = s5; }
+  if (s6 > bestScore) { candidate = c6; bestScore = s6; }
+  if (s7 > bestScore) { candidate = c7; bestScore = s7; }
+
+  vec3 sum = vec3(0.0);
+  float count = 0.0;
+
+  if (colorDistance(c0, candidate) < similarityThreshold) {
+    sum += c0;
+    count += 1.0;
+  }
+  if (colorDistance(c1, candidate) < similarityThreshold) {
+    sum += c1;
+    count += 1.0;
+  }
+  if (colorDistance(c2, candidate) < similarityThreshold) {
+    sum += c2;
+    count += 1.0;
+  }
+  if (colorDistance(c3, candidate) < similarityThreshold) {
+    sum += c3;
+    count += 1.0;
+  }
+  if (colorDistance(c4, candidate) < similarityThreshold) {
+    sum += c4;
+    count += 1.0;
+  }
+  if (colorDistance(c5, candidate) < similarityThreshold) {
+    sum += c5;
+    count += 1.0;
+  }
+  if (colorDistance(c6, candidate) < similarityThreshold) {
+    sum += c6;
+    count += 1.0;
+  }
+  if (colorDistance(c7, candidate) < similarityThreshold) {
+    sum += c7
+    count += 1.0;
+  }
+
+  return sum / max(count, 1.0);
+}
+
+void main() {
+  //vec4 color = texture2D(u_texture0, v_uv);
+//
+vec2 sampleUV = v_uv; //r800zz
+vec4 color = vec4(0.0); //r800zz
+
+if (u_flatToEquirectEnabled > 0.5) { //r800zz
+  const float PI = 3.14159265358979323846; //r800zz
+  const float hFov = 120.0 * PI / 180.0; //r800zz
+  const float vFov = 120.0 * PI / 180.0; //r800zz
+
+  float yaw = (v_uv.x - 0.5) * PI; //r800zz
+  float pitch = (0.5 - v_uv.y) * PI; //r800zz
+
+  vec3 dir; //r800zz
+  dir.x = sin(yaw) * cos(pitch); //r800zz
+  dir.y = sin(pitch); //r800zz
+  dir.z = cos(yaw) * cos(pitch); //r800zz
+
+  if (dir.z > 0.0) { //r800zz
+    float px = dir.x / dir.z; //r800zz
+    float py = dir.y / dir.z; //r800zz
+
+    sampleUV.x = 0.5 + (px / tan(hFov * 0.5)) * 0.5; //r800zz
+    sampleUV.y = 0.5 - (py / tan(vFov * 0.5)) * 0.5; //r800zz
+
+    if (sampleUV.x >= 0.0 && sampleUV.x <= 1.0 &&
+        sampleUV.y >= 0.0 && sampleUV.y <= 1.0) { //r800zz
+      color = texture2D(u_texture0, sampleUV); //r800zz
+    } //r800zz
+  } //r800zz
+} else { //r800zz
+  color = texture2D(u_texture0, v_uv); //r800zz
+} //r800zz
+//
+
+if (u_chromaKeyEnabled > 0.5) {
+  //if (u_autoChromaEnabled > 0.5)
+  if (true)
+  {
+    vec3 keyColor = detectBackgroundColor();
+
+    float distanceFromKey = distance(color.rgb, keyColor);
+
+    float keyAmount = 1.0 - smoothstep(
+        0.10,
+        0.25,
+        distanceFromKey
+    );
+
+    color.a *= 1.0 - keyAmount;
+    color.rgb *= color.a;
+
+    if (color.a < 0.01) {
+      color = vec4(0.0);
+    }
+  }
+  else{
+  float maxRB = max(color.r, color.b);
+
+  float greenScore =
+      min(color.g - color.b,
+          color.g - color.r * 1.05);
+
+  float keyAmount = smoothstep(
+      0.06,
+      0.20,
+      greenScore
+  );
+
+  // Strong green becomes fully transparent.
+  if (color.g > 0.30 &&
+      color.g > color.r * 1.30 &&
+      color.g > color.b * 1.30) {
+    keyAmount = max(keyAmount, 1.0);
+  }
+
+  // Remove green spill before alpha feathering.
+  color.g = min(color.g, maxRB);
+
+  color.a *= 1.0 - keyAmount;
+  color.rgb *= color.a;
+
+  if (color.a < 0.01) {
+    color = vec4(0.0);
+  }
+}
+}
+
+  gl_FragColor = color;
+}
+)SHADER";
+#else
+const char* sFragmentShader = R"SHADER(
+#extension GL_OES_EGL_image_external : require
+precision mediump float;
+
+uniform samplerExternalOES u_texture0;
+uniform float u_flipY; //r800zz
+uniform float u_chromaKeyEnabled;
+uniform float u_flatToEquirectEnabled; //r800zz
+
+varying vec2 v_uv;
+
+void main() {
+  //vec4 color = texture2D(u_texture0, v_uv);
+//
+vec2 sampleUV = v_uv; //r800zz
+vec4 color = vec4(0.0); //r800zz
+
+if (u_flatToEquirectEnabled > 0.5) { //r800zz
+  const float PI = 3.14159265358979323846; //r800zz
+  const float hFov = 120.0 * PI / 180.0; //r800zz
+  const float vFov = 120.0 * PI / 180.0; //r800zz
+
+  float yaw = (v_uv.x - 0.5) * PI; //r800zz
+  float pitch = (0.5 - v_uv.y) * PI; //r800zz
+
+  vec3 dir; //r800zz
+  dir.x = sin(yaw) * cos(pitch); //r800zz
+  dir.y = sin(pitch); //r800zz
+  dir.z = cos(yaw) * cos(pitch); //r800zz
+
+  if (dir.z > 0.0) { //r800zz
+    float px = dir.x / dir.z; //r800zz
+    float py = dir.y / dir.z; //r800zz
+
+    sampleUV.x = 0.5 + (px / tan(hFov * 0.5)) * 0.5; //r800zz
+    sampleUV.y = 0.5 - (py / tan(vFov * 0.5)) * 0.5; //r800zz
+
+    if (sampleUV.x >= 0.0 && sampleUV.x <= 1.0 &&
+        sampleUV.y >= 0.0 && sampleUV.y <= 1.0) { //r800zz
+if (u_flipY > 0.5) {
+  sampleUV.y = 1.0 - sampleUV.y; //r800zz Flip external texture vertically on Oculus FBO path.
+}
+      color = texture2D(u_texture0, sampleUV); //r800zz
+    } //r800zz
+  } //r800zz
+} else { //r800zz
+vec2 normalUV = v_uv; //r800zz
+if (u_flipY > 0.5) {
+  normalUV.y = 1.0 - normalUV.y; //r800zz Flip external texture vertically on Oculus FBO path.
+}
+  color = texture2D(u_texture0, normalUV); //r800zz
+} //r800zz
+//
+
+if (u_chromaKeyEnabled > 0.5) {
+  float maxRB = max(color.r, color.b);
+
+  float greenScore =
+      min(color.g - color.b,
+          color.g - color.r * 1.05);
+
+  float keyAmount = smoothstep(
+      0.06,
+      0.20,
+      greenScore
+  );
+
+  // Strong green becomes fully transparent.
+  if (color.g > 0.30 &&
+      color.g > color.r * 1.30 &&
+      color.g > color.b * 1.30) {
+    keyAmount = max(keyAmount, 1.0);
+  }
+
+  // Remove green spill before alpha feathering.
+  color.g = min(color.g, maxRB);
+
+  color.a *= 1.0 - keyAmount;
+  color.rgb *= color.a;
+
+  if (color.a < 0.01) {
+    color = vec4(0.0);
+  }
+}
+
+  gl_FragColor = color;
+}
+)SHADER";
+#endif
+
+const GLfloat sVertices[] = {
+    -1.0f,  1.0f, 0.0f,
+    -1.0f, -1.0f, 0.0f,
+     1.0f,  1.0f, 0.0f,
+     1.0f, -1.0f, 0.0f,
+};
+
+const GLfloat sUVs[] = {
+    0.0f, 0.0f,
+    0.0f, 1.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+};
+
+} // namespace
+
+namespace crow {
+
+struct LayerBlitter::State : public vrb::ResourceGL::State {
+  GLuint vertexShader = 0;
+  GLuint fragmentShader = 0;
+  GLuint program = 0;
+  GLint aPosition = -1;
+  GLint aUV = -1;
+  GLint uTexture0 = -1;
+  GLint uChromaKeyEnabled = -1;
+  GLint uFlatToEquirectEnabled = -1; //r800zz
+  GLint uFlipY = -1; //r800zz
+};
+
+LayerBlitterPtr
+LayerBlitter::Create(vrb::CreationContextPtr& aContext) {
+  return std::make_shared<vrb::ConcreteClass<LayerBlitter, LayerBlitter::State>>(aContext);
+}
+
+LayerBlitter::LayerBlitter(State& aState, vrb::CreationContextPtr& aContext)
+    : vrb::ResourceGL(aState, aContext)
+    , m(aState) {}
+
+void
+LayerBlitter::Draw(const vrb::TextureSurfacePtr& aTexture,
+                   const VRLayerSurfacePtr& aLayer,
+                   bool aChromaKeyEnabled,
+                   bool aFlatToEquirectEnabled) {
+  if (!m.program || !aTexture || !aLayer || !aLayer->IsInitialized() ||
+      aLayer->GetSurfaceType() != VRLayerSurface::SurfaceType::FBO ||
+      aTexture->GetHandle() == 0) {
+    return;
+  }
+
+  const GLboolean depthEnabled = glIsEnabled(GL_DEPTH_TEST);
+  const GLboolean blendEnabled = glIsEnabled(GL_BLEND);
+  const GLboolean cullEnabled = glIsEnabled(GL_CULL_FACE);
+  GLfloat previousClearColor[4];
+  VRB_GL_CHECK(glGetFloatv(GL_COLOR_CLEAR_VALUE, previousClearColor));
+
+  aLayer->Bind();
+  VRB_GL_CHECK(glViewport(0, 0, aLayer->GetWidth(), aLayer->GetHeight()));
+  VRB_GL_CHECK(glClearColor(0.0f, 0.0f, 0.0f, 0.0f));
+  VRB_GL_CHECK(glClear(GL_COLOR_BUFFER_BIT));
+
+  VRB_GL_CHECK(glDisable(GL_DEPTH_TEST));
+  VRB_GL_CHECK(glDisable(GL_BLEND));
+  VRB_GL_CHECK(glDisable(GL_CULL_FACE));
+
+  VRB_GL_CHECK(glUseProgram(m.program));
+  VRB_GL_CHECK(glActiveTexture(GL_TEXTURE0));
+  VRB_GL_CHECK(glBindTexture(GL_TEXTURE_EXTERNAL_OES, aTexture->GetHandle()));
+  VRB_GL_CHECK(glUniform1i(m.uTexture0, 0));
+#if defined(OCULUSVR)
+  VRB_GL_CHECK(glUniform1f(m.uFlipY, 1.0f)); //r800zz
+#else
+  VRB_GL_CHECK(glUniform1f(m.uFlipY, 0.0f)); //r800zz
+#endif
+  VRB_GL_CHECK(glUniform1f(m.uChromaKeyEnabled, aChromaKeyEnabled ? 1.0f : 0.0f));
+  VRB_GL_CHECK(glUniform1f(m.uFlatToEquirectEnabled, aFlatToEquirectEnabled ? 1.0f : 0.0f)); //r800zz
+
+  VRB_GL_CHECK(glVertexAttribPointer((GLuint)m.aPosition, 3, GL_FLOAT, GL_FALSE, 0, sVertices));
+  VRB_GL_CHECK(glEnableVertexAttribArray((GLuint)m.aPosition));
+  VRB_GL_CHECK(glVertexAttribPointer((GLuint)m.aUV, 2, GL_FLOAT, GL_FALSE, 0, sUVs));
+  VRB_GL_CHECK(glEnableVertexAttribArray((GLuint)m.aUV));
+  VRB_GL_CHECK(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
+
+  VRB_GL_CHECK(glDisableVertexAttribArray((GLuint)m.aPosition));
+  VRB_GL_CHECK(glDisableVertexAttribArray((GLuint)m.aUV));
+  VRB_GL_CHECK(glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0));
+
+  if (depthEnabled) VRB_GL_CHECK(glEnable(GL_DEPTH_TEST));
+  if (blendEnabled) VRB_GL_CHECK(glEnable(GL_BLEND));
+  if (cullEnabled) VRB_GL_CHECK(glEnable(GL_CULL_FACE));
+  VRB_GL_CHECK(glClearColor(previousClearColor[0], previousClearColor[1],
+                           previousClearColor[2], previousClearColor[3]));
+
+  aLayer->Unbind();
+}
+
+void
+LayerBlitter::InitializeGL() {
+  m.vertexShader = vrb::LoadShader(GL_VERTEX_SHADER, sVertexShader);
+  m.fragmentShader = vrb::LoadShader(GL_FRAGMENT_SHADER, sFragmentShader);
+  if (m.vertexShader && m.fragmentShader) {
+    m.program = vrb::CreateProgram(m.vertexShader, m.fragmentShader);
+  }
+  if (m.program) {
+    m.aPosition = vrb::GetAttributeLocation(m.program, "a_position");
+    m.aUV = vrb::GetAttributeLocation(m.program, "a_uv");
+    m.uTexture0 = vrb::GetUniformLocation(m.program, "u_texture0");
+    m.uChromaKeyEnabled = vrb::GetUniformLocation(m.program, "u_chromaKeyEnabled");
+    m.uFlipY = vrb::GetUniformLocation(m.program, "u_flipY"); //r800zz
+  }
+  m.uFlatToEquirectEnabled = vrb::GetUniformLocation(m.program, "u_flatToEquirectEnabled"); //r800zz
+}
+
+void
+LayerBlitter::ShutdownGL() {
+  if (m.program) {
+    VRB_GL_CHECK(glDeleteProgram(m.program));
+    m.program = 0;
+  }
+  if (m.vertexShader) {
+    VRB_GL_CHECK(glDeleteShader(m.vertexShader));
+    m.vertexShader = 0;
+  }
+  if (m.fragmentShader) {
+    VRB_GL_CHECK(glDeleteShader(m.fragmentShader));
+    m.fragmentShader = 0;
+  }
+}
+
+} // namespace crow

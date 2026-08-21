@@ -30,7 +30,7 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Title" />
 
-        <com.igalia.wolvic.ui.views.CustomScrollView
+        <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
             android:id="@+id/bodyContainer"
             style="@style/customScrollViewStyle"
             android:layout_width="match_parent"
@@ -56,7 +56,7 @@
                 android:scrollbars="vertical"
                 android:textSize="18sp"
                 tools:text="Message" />
-        </com.igalia.wolvic.ui.views.CustomScrollView>
+        </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/buttonsLayout"

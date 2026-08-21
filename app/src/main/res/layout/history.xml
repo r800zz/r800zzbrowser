@@ -7,7 +7,7 @@
 
         <variable
             name="historyViewModel"
-            type="com.igalia.wolvic.ui.viewmodel.HistoryViewModel" />
+            type="com.r800zz.r800zzbrowser.ui.viewmodel.HistoryViewModel" />
 
         <variable
             name="isAccountsUIEnabled"
@@ -31,7 +31,7 @@
 
         <variable
             name="callback"
-            type="com.igalia.wolvic.ui.callbacks.HistoryCallback" />
+            type="com.r800zz.r800zzbrowser.ui.callbacks.HistoryCallback" />
     </data>
 
     <RelativeLayout
@@ -92,7 +92,7 @@
             android:visibility="gone"
             app:visibleGone="@{historyViewModel.isLoading}" />
 
-        <com.igalia.wolvic.ui.views.CustomRecyclerView
+        <com.r800zz.r800zzbrowser.ui.views.CustomRecyclerView
             android:id="@+id/history_list"
             style="@style/customRecyclerViewStyle"
             android:layout_width="match_parent"

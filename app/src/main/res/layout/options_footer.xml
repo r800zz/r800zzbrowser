@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_alignParentTop="true" />
 
-        <com.igalia.wolvic.ui.views.settings.ButtonSetting
+        <com.r800zz.r800zzbrowser.ui.views.settings.ButtonSetting
             android:id="@+id/resetButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -2,7 +2,7 @@
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <com.igalia.wolvic.ui.views.CustomScrollView
+    <com.r800zz.r800zzbrowser.ui.views.CustomScrollView
         android:id="@+id/scrollbar"
         style="@style/customScrollViewStyle"
         android:layout_width="match_parent"
@@ -12,7 +12,7 @@
         android:paddingStart="0dp"
         android:paddingEnd="30dp">
 
-        <com.igalia.wolvic.ui.views.settings.RadioGroupVSetting
+        <com.r800zz.r800zzbrowser.ui.views.settings.RadioGroupVSetting
             android:id="@+id/clearHistoryRadio"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -21,6 +21,6 @@
             app:options="@array/clear_cache_options"
             app:values="@array/clear_cache_options_values" />
 
-    </com.igalia.wolvic.ui.views.CustomScrollView>
+    </com.r800zz.r800zzbrowser.ui.views.CustomScrollView>
 
 </layout>

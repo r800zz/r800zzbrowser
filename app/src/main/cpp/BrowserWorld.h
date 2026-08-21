@@ -13,6 +13,8 @@
 
 #include <jni.h>
 #include <memory>
+#include <vector> //r800zz
+#include <cstdint> //r800zz
 
 namespace crow {
 
@@ -49,6 +51,9 @@ public:
   void EndFrame();
   void TriggerHapticFeedback(const float aPulseDuration, const float aPulseIntensity, const int aControllerId);
   void TogglePassthrough();
+  void SetChromaKeyMode(int aMode, int aWindowHandle); //r800zz
+  void SetAiSegmentationMask(const std::vector<uint8_t>& aMask, int aWidth, int aHeight); //r800zz
+  bool IsChromaKeyEnabled() const; //r800zz
   enum class LockMode { NO_LOCK, HEAD, CONTROLLER };
   void SetLockMode(LockMode);
   void SetTemporaryFilePath(const std::string& aPath);

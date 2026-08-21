@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-        <import type="com.igalia.wolvic.utils.DeviceType"/>
-        <import type="com.igalia.wolvic.ui.widgets.WebXRInterstitialController"/>
+        <import type="com.r800zz.r800zzbrowser.utils.DeviceType"/>
+        <import type="com.r800zz.r800zzbrowser.ui.widgets.WebXRInterstitialController"/>
         <variable
             name="model"
             type="int" />

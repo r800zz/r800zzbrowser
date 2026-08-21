@@ -1,0 +1,690 @@
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "ExternalBlitter.h"
+#include "EngineSurfaceTexture.h"
+#include "vrb/ConcreteClass.h"
+#include "vrb/private/ResourceGLState.h"
+#include "vrb/gl.h"
+#include "vrb/GLError.h"
+#include "vrb/Logger.h"
+#include "vrb/ShaderUtil.h"
+
+#include <chrono>
+#include <map>
+
+namespace {
+    const char* sVertexShader = R"SHADER(
+attribute vec4 a_position;
+attribute vec2 a_uv;
+varying vec2 v_uv;
+void main(void) {
+  v_uv = a_uv;
+  gl_Position = a_position;
+}
+)SHADER";
+
+#if defined(PICOXR)
+    constexpr GLsizei kAutoChromaSampleSize = 20;
+    constexpr std::chrono::milliseconds kAutoChromaSampleInterval(1000);
+    constexpr float kAutoChromaSimilarityThreshold = 0.035f;
+    constexpr float kAutoChromaLockedColorThreshold = 0.035f; //r800zz Squared RGB distance.
+    constexpr int kAutoChromaMinimumMatchingSamples = 4;
+    constexpr int kAutoChromaStartHitCount = 2; //r800zz
+    constexpr int kAutoChromaStopMissCount = 5; //r800zz
+
+    const char* sAutoChromaFragmentShader = R"SHADER(
+#extension GL_OES_EGL_image_external : require
+precision mediump float;
+
+uniform samplerExternalOES u_texture0;
+varying vec2 v_uv;
+
+void main() {
+  gl_FragColor = texture2D(u_texture0, v_uv);
+}
+)SHADER";
+
+/* Apparently the Pico driver does not do sRGB to linear conversion automatically when using
+ * GL_OES_EGL_image_external. It does seem to work fine for the other surfaces as we need to call
+ * glDisable(GL_FRAMEBUFFER_SRGB_EXT) to avoid double conversions for widgets.
+ * Using pow() does not provide exact colorimetry results but it's very fast and close enough.
+ */
+    const char* sFragmentShader = R"SHADER(
+#extension GL_OES_EGL_image_external : require
+precision mediump float;
+
+uniform samplerExternalOES u_texture0;
+uniform float u_chromaKeyEnabled;
+uniform float u_autoChromaEnabled;
+uniform vec3 u_autoChromaKeyColor;
+
+varying vec2 v_uv;
+
+vec3 toLinear(vec3 srgb) {
+    return pow(srgb, vec3(2.2));
+}
+
+void main() {
+  vec4 color = texture2D(u_texture0, v_uv);
+
+  if (u_chromaKeyEnabled > 0.5) {
+    if (u_autoChromaEnabled > 0.5) {
+      float distanceFromKey = distance(color.rgb, u_autoChromaKeyColor);
+      float keyAmount = 1.0 - smoothstep(0.10, 0.25, distanceFromKey);
+      color.a *= 1.0 - keyAmount;
+    } else {
+      float maxRB = max(color.r, color.b);
+      float greenScore = min(color.g - color.b,
+                             color.g - color.r * 1.05);
+      float keyAmount = smoothstep(0.06, 0.20, greenScore);
+
+      if (color.g > 0.30 &&
+          color.g > color.r * 1.30 &&
+          color.g > color.b * 1.30) {
+        keyAmount = max(keyAmount, 1.0);
+      }
+
+      color.g = min(color.g, maxRB);
+      color.a *= 1.0 - keyAmount;
+    }
+
+    if (color.a < 0.01) {
+      color = vec4(0.0);
+    }
+  }
+
+  color.rgb = toLinear(color.rgb);
+  if (u_chromaKeyEnabled > 0.5) {
+    color.rgb *= color.a;
+  }
+  gl_FragColor = color;
+}
+)SHADER";
+#else
+    const char* sFragmentShader = R"SHADER(
+#extension GL_OES_EGL_image_external : require
+precision mediump float;
+
+uniform samplerExternalOES u_texture0;
+
+varying vec2 v_uv;
+
+void main() {
+  gl_FragColor = texture2D(u_texture0, v_uv);
+}
+)SHADER";
+#endif
+
+    const GLfloat sVerticies[] = {
+            -1.0f, 1.0f, 0.0f,
+            -1.0f, -1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f
+    };
+
+}
+
+namespace crow {
+
+    struct ExternalBlitter::State : public vrb::ResourceGL::State {
+        GLuint vertexShader;
+        GLuint fragmentShader;
+        GLuint program;
+        GLint aPosition;
+        GLint aUV;
+        GLint uTexture0;
+        device::EyeRect eyes[device::EyeCount];
+        EngineSurfaceTexturePtr surface;
+        GLfloat leftUV[8];
+        GLfloat rightUV[8];
+        std::map<const int32_t, EngineSurfaceTexturePtr> surfaceMap;
+        int chromaKeyMode; //r800zz 0=off, 1=green, 2=auto
+#if defined(PICOXR)
+        GLint uChromaKeyEnabled;
+        GLint uAutoChromaEnabled;
+        GLint uAutoChromaKeyColor;
+        GLuint autoChromaVertexShader;
+        GLuint autoChromaFragmentShader;
+        GLuint autoChromaProgram;
+        GLint autoChromaAPosition;
+        GLint autoChromaAUV;
+        GLint autoChromaUTexture0;
+        GLuint autoChromaFramebuffer;
+        GLuint autoChromaTexture;
+        std::chrono::steady_clock::time_point autoChromaLastSampleTime;
+        bool autoChromaHasSampleTime;
+        bool autoChromaKeyValid;
+        int autoChromaConsecutiveHits; //r800zz
+        int autoChromaConsecutiveMisses; //r800zz
+        GLfloat autoChromaCandidateColor[3]; //r800zz Not used for rendering.
+        GLfloat autoChromaKeyColor[3]; //r800zz Locked rendering color.
+#endif
+        State()
+                : vertexShader(0)
+                , fragmentShader(0)
+                , program(0)
+                , aPosition(0)
+                , aUV(0)
+                , uTexture0(0)
+                , leftUV{0.0f, 0.0f, 0.0f, 1.0f, 0.5f, 0.0f, 0.5f, 1.0f}
+                , rightUV{0.5f, 0.0f, 0.5f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f}
+                , chromaKeyMode(0)
+#if defined(PICOXR)
+                , uChromaKeyEnabled(-1)
+                , uAutoChromaEnabled(-1)
+                , uAutoChromaKeyColor(-1)
+                , autoChromaVertexShader(0)
+                , autoChromaFragmentShader(0)
+                , autoChromaProgram(0)
+                , autoChromaAPosition(-1)
+                , autoChromaAUV(-1)
+                , autoChromaUTexture0(-1)
+                , autoChromaFramebuffer(0)
+                , autoChromaTexture(0)
+                , autoChromaHasSampleTime(false)
+                , autoChromaKeyValid(false)
+                , autoChromaConsecutiveHits(0) //r800zz
+                , autoChromaConsecutiveMisses(0) //r800zz
+                , autoChromaCandidateColor{0.0f, 1.0f, 0.0f} //r800zz
+                , autoChromaKeyColor{0.0f, 1.0f, 0.0f} //r800zz
+#endif
+        {}
+    };
+
+    ExternalBlitterPtr
+    ExternalBlitter::Create(vrb::CreationContextPtr& aContext) {
+      return std::make_shared<vrb::ConcreteClass<ExternalBlitter, ExternalBlitter::State> >(aContext);
+    }
+
+    void
+    ExternalBlitter::SetChromaKeyMode(const int aMode) { //r800zz
+      if (m.chromaKeyMode == aMode) {
+        return;
+      }
+    
+      m.chromaKeyMode = aMode;
+    
+      if (aMode != 2) {
+        m.autoChromaHasSampleTime = false;
+        m.autoChromaKeyValid = false;
+        m.autoChromaConsecutiveHits = 0;
+        m.autoChromaConsecutiveMisses = 0;
+        m.autoChromaCandidateColor[0] = 0.0f;
+        m.autoChromaCandidateColor[1] = 1.0f;
+        m.autoChromaCandidateColor[2] = 0.0f;
+        m.autoChromaKeyColor[0] = 0.0f;
+        m.autoChromaKeyColor[1] = 1.0f;
+        m.autoChromaKeyColor[2] = 0.0f;
+      }
+    }
+
+    void
+    ExternalBlitter::StartFrame(const int32_t aSurfaceHandle, const device::EyeRect& aLeftEye,
+                                const device::EyeRect& aRightEye) {
+      std::map<const int32_t, EngineSurfaceTexturePtr>::iterator iter = m.surfaceMap.find(aSurfaceHandle);
+
+      if (iter == m.surfaceMap.end()) {
+        VRB_LOG("Creating EngineSurfaceTexture for handle: %d", aSurfaceHandle);
+        m.surface = EngineSurfaceTexture::Create(aSurfaceHandle);
+        m.surfaceMap[aSurfaceHandle] = m.surface;
+      } else {
+        m.surface = iter->second;
+      }
+
+      if (!m.surface) {
+        VRB_ERROR("Failed to find EngineSurfaceTexture for handle: %d", aSurfaceHandle);
+        return;
+      }
+
+
+      EGLContext  ctx = eglGetCurrentContext();
+      if (!m.surface->IsAttachedToGLContext(ctx)) {
+        m.surface->AttachToGLContext(ctx);
+      }
+
+      m.surface->UpdateTexImage();
+      m.eyes[device::EyeIndex(device::Eye::Left)] = aLeftEye;
+      m.eyes[device::EyeIndex(device::Eye::Right)] = aRightEye;
+    }
+
+    void
+    ExternalBlitter::Draw(const device::Eye aEye) {
+      if (!m.program || !m.surface) {
+        VRB_ERROR("ExternalBlitter::Draw FAILED!");
+        return;
+      }
+
+      const GLboolean depthEnabled = glIsEnabled(GL_DEPTH_TEST);
+      const GLboolean blendEnabled = glIsEnabled(GL_BLEND);
+      const GLboolean cullEnabled = glIsEnabled(GL_CULL_FACE);
+
+      const bool greenChromaEnabled = m.chromaKeyMode == 1; //r800zz
+      const bool autoChromaEnabled = m.chromaKeyMode == 2; //r800zz
+
+#if defined(PICOXR)
+      // The Gecko texture is side-by-side stereo. Detect the key color from
+      // the left-eye half and use the same color for both eyes.
+      if (autoChromaEnabled && aEye == device::Eye::Left &&
+        m.autoChromaProgram && m.autoChromaFramebuffer) {
+        const auto autoChromaNow = std::chrono::steady_clock::now();
+        const bool autoChromaSampleDue =
+            !m.autoChromaHasSampleTime ||
+            autoChromaNow - m.autoChromaLastSampleTime >=
+                kAutoChromaSampleInterval;
+
+        if (autoChromaSampleDue) {
+          m.autoChromaLastSampleTime = autoChromaNow;
+          m.autoChromaHasSampleTime = true;
+
+          GLint previousFramebuffer = 0;
+          GLint previousViewport[4] = {0, 0, 0, 0};
+          VRB_GL_CHECK(glGetIntegerv(GL_FRAMEBUFFER_BINDING,
+                                     &previousFramebuffer));
+          VRB_GL_CHECK(glGetIntegerv(GL_VIEWPORT, previousViewport));
+
+          VRB_GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER,
+                                         m.autoChromaFramebuffer));
+          VRB_GL_CHECK(glViewport(0, 0, kAutoChromaSampleSize,
+                                  kAutoChromaSampleSize));
+          VRB_GL_CHECK(glDisable(GL_DEPTH_TEST));
+          VRB_GL_CHECK(glDisable(GL_BLEND));
+          VRB_GL_CHECK(glDisable(GL_CULL_FACE));
+          VRB_GL_CHECK(glUseProgram(m.autoChromaProgram));
+          VRB_GL_CHECK(glActiveTexture(GL_TEXTURE0));
+          VRB_GL_CHECK(glBindTexture(GL_TEXTURE_EXTERNAL_OES,
+                                     m.surface->GetTextureName()));
+          VRB_GL_CHECK(glUniform1i(m.autoChromaUTexture0, 0));
+          VRB_GL_CHECK(glVertexAttribPointer(
+              (GLuint)m.autoChromaAPosition, 3, GL_FLOAT,
+              GL_FALSE, 0, sVerticies));
+          VRB_GL_CHECK(glEnableVertexAttribArray(
+              (GLuint)m.autoChromaAPosition));
+          VRB_GL_CHECK(glVertexAttribPointer(
+              (GLuint)m.autoChromaAUV, 2, GL_FLOAT,
+              GL_FALSE, 0, m.leftUV));
+          VRB_GL_CHECK(glEnableVertexAttribArray(
+              (GLuint)m.autoChromaAUV));
+          VRB_GL_CHECK(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
+
+          GLubyte pixels[kAutoChromaSampleSize *
+                         kAutoChromaSampleSize * 4];
+          VRB_GL_CHECK(glReadPixels(0, 0, kAutoChromaSampleSize,
+                                    kAutoChromaSampleSize, GL_RGBA,
+                                    GL_UNSIGNED_BYTE, pixels));
+
+          VRB_GL_CHECK(glDisableVertexAttribArray(
+              (GLuint)m.autoChromaAPosition));
+          VRB_GL_CHECK(glDisableVertexAttribArray(
+              (GLuint)m.autoChromaAUV));
+          VRB_GL_CHECK(glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0));
+          VRB_GL_CHECK(glBindFramebuffer(
+              GL_FRAMEBUFFER, (GLuint)previousFramebuffer));
+          VRB_GL_CHECK(glViewport(previousViewport[0], previousViewport[1],
+                                  previousViewport[2], previousViewport[3]));
+
+          // Sample the 12 internal intersections of a 5-by-4 grid.
+          const GLint samplePoints[12][2] = {
+              {4, 5}, {8, 5}, {12, 5}, {16, 5},
+              {4, 10}, {8, 10}, {12, 10}, {16, 10},
+              {4, 15}, {8, 15}, {12, 15}, {16, 15},
+          };
+          GLfloat samples[12][3];
+          for (int i = 0; i < 12; ++i) {
+            const int offset =
+                (samplePoints[i][1] * kAutoChromaSampleSize +
+                 samplePoints[i][0]) * 4;
+            samples[i][0] = pixels[offset] / 255.0f;
+            samples[i][1] = pixels[offset + 1] / 255.0f;
+            samples[i][2] = pixels[offset + 2] / 255.0f;
+          }
+
+          int bestIndex = 0;
+          int bestScore = -1;
+          for (int i = 0; i < 12; ++i) {
+            int score = 0;
+            for (int j = 0; j < 12; ++j) {
+              if (i == j) {
+                continue;
+              }
+              const GLfloat dr = samples[i][0] - samples[j][0];
+              const GLfloat dg = samples[i][1] - samples[j][1];
+              const GLfloat db = samples[i][2] - samples[j][2];
+              if (dr * dr + dg * dg + db * db <
+                  kAutoChromaSimilarityThreshold) {
+                ++score;
+              }
+            }
+            if (score > bestScore) {
+              bestScore = score;
+              bestIndex = i;
+            }
+          }
+
+          GLfloat detectedColor[3] = {0.0f, 0.0f, 0.0f};
+          int detectedCount = 0;
+          for (int i = 0; i < 12; ++i) {
+            const GLfloat dr = samples[i][0] - samples[bestIndex][0];
+            const GLfloat dg = samples[i][1] - samples[bestIndex][1];
+            const GLfloat db = samples[i][2] - samples[bestIndex][2];
+            if (dr * dr + dg * dg + db * db <
+                kAutoChromaSimilarityThreshold) {
+              detectedColor[0] += samples[i][0];
+              detectedColor[1] += samples[i][1];
+              detectedColor[2] += samples[i][2];
+              ++detectedCount;
+            }
+          }
+
+          const bool autoChromaHit =
+              detectedCount >= kAutoChromaMinimumMatchingSamples;
+
+          if (autoChromaHit) {
+            detectedColor[0] /= detectedCount;
+            detectedColor[1] /= detectedCount;
+            detectedColor[2] /= detectedCount;
+          }
+
+          if (m.autoChromaKeyValid) {
+            // While active, the rendering key color remains locked. A coherent
+            // detected color counts as a hit only when it still matches that color.
+            bool lockedColorHit = false;
+            if (autoChromaHit) {
+              const GLfloat dr =
+                  detectedColor[0] - m.autoChromaKeyColor[0];
+              const GLfloat dg =
+                  detectedColor[1] - m.autoChromaKeyColor[1];
+              const GLfloat db =
+                  detectedColor[2] - m.autoChromaKeyColor[2];
+              lockedColorHit =
+                  dr * dr + dg * dg + db * db <
+                  kAutoChromaLockedColorThreshold;
+            }
+
+            m.autoChromaConsecutiveHits = 0; //r800zz
+            if (lockedColorHit) {
+              m.autoChromaConsecutiveMisses = 0; //r800zz
+            } else {
+              ++m.autoChromaConsecutiveMisses; //r800zz
+              if (m.autoChromaConsecutiveMisses >=
+                  kAutoChromaStopMissCount) {
+                m.autoChromaKeyValid = false;
+                m.autoChromaConsecutiveMisses = 0;
+              }
+            }
+          } else if (autoChromaHit) {
+            m.autoChromaConsecutiveMisses = 0; //r800zz
+
+            // Require consecutive detections of approximately the same color
+            // before copying the candidate into the locked rendering color.
+            if (m.autoChromaConsecutiveHits == 0) {
+              m.autoChromaCandidateColor[0] = detectedColor[0];
+              m.autoChromaCandidateColor[1] = detectedColor[1];
+              m.autoChromaCandidateColor[2] = detectedColor[2];
+              m.autoChromaConsecutiveHits = 1;
+            } else {
+              const GLfloat dr =
+                  detectedColor[0] - m.autoChromaCandidateColor[0];
+              const GLfloat dg =
+                  detectedColor[1] - m.autoChromaCandidateColor[1];
+              const GLfloat db =
+                  detectedColor[2] - m.autoChromaCandidateColor[2];
+              const bool candidateColorHit =
+                  dr * dr + dg * dg + db * db <
+                  kAutoChromaLockedColorThreshold;
+
+              if (candidateColorHit) {
+                ++m.autoChromaConsecutiveHits; //r800zz
+                if (m.autoChromaConsecutiveHits >=
+                    kAutoChromaStartHitCount) {
+                  m.autoChromaKeyColor[0] =
+                      (m.autoChromaCandidateColor[0] + detectedColor[0]) *
+                      0.5f;
+                  m.autoChromaKeyColor[1] =
+                      (m.autoChromaCandidateColor[1] + detectedColor[1]) *
+                      0.5f;
+                  m.autoChromaKeyColor[2] =
+                      (m.autoChromaCandidateColor[2] + detectedColor[2]) *
+                      0.5f;
+                  m.autoChromaKeyValid = true;
+                  m.autoChromaConsecutiveHits = 0;
+                }
+              } else {
+                // The current detection becomes the first hit of a new candidate.
+                m.autoChromaCandidateColor[0] = detectedColor[0];
+                m.autoChromaCandidateColor[1] = detectedColor[1];
+                m.autoChromaCandidateColor[2] = detectedColor[2];
+                m.autoChromaConsecutiveHits = 1;
+              }
+            }
+          } else {
+            m.autoChromaConsecutiveHits = 0; //r800zz
+            m.autoChromaConsecutiveMisses = 0; //r800zz
+          }
+        }
+      }
+#endif
+
+      VRB_GL_CHECK(glDisable(GL_DEPTH_TEST));
+      VRB_GL_CHECK(glDisable(GL_BLEND));
+      VRB_GL_CHECK(glDisable(GL_CULL_FACE));
+      VRB_GL_CHECK(glUseProgram(m.program));
+      VRB_GL_CHECK(glActiveTexture(GL_TEXTURE0));
+      VRB_GL_CHECK(glBindTexture(GL_TEXTURE_EXTERNAL_OES,
+                                 m.surface->GetTextureName()));
+      VRB_GL_CHECK(glUniform1i(m.uTexture0, 0));
+#if defined(PICOXR)
+      const bool chromaKeyActive = greenChromaEnabled ||
+        (autoChromaEnabled && m.autoChromaKeyValid);
+
+      const bool autoChromaActive = autoChromaEnabled && m.autoChromaKeyValid;
+      VRB_GL_CHECK(glUniform1f(m.uChromaKeyEnabled,
+                               chromaKeyActive ? 1.0f : 0.0f));
+      VRB_GL_CHECK(glUniform1f(m.uAutoChromaEnabled,
+                               autoChromaActive ? 1.0f : 0.0f));
+      VRB_GL_CHECK(glUniform3f(m.uAutoChromaKeyColor,
+                               m.autoChromaKeyColor[0],
+                               m.autoChromaKeyColor[1],
+                               m.autoChromaKeyColor[2]));
+#endif
+      VRB_GL_CHECK(glVertexAttribPointer((GLuint)m.aPosition, 3, GL_FLOAT,
+                                         GL_FALSE, 0, sVerticies));
+      VRB_GL_CHECK(glEnableVertexAttribArray((GLuint)m.aPosition));
+      GLfloat* data =
+          (aEye == device::Eye::Left ? &m.leftUV[0] : &m.rightUV[0]);
+      VRB_GL_CHECK(glVertexAttribPointer((GLuint)m.aUV, 2, GL_FLOAT,
+                                         GL_FALSE, 0, data));
+      VRB_GL_CHECK(glEnableVertexAttribArray((GLuint)m.aUV));
+      VRB_GL_CHECK(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
+      VRB_GL_CHECK(glDisableVertexAttribArray((GLuint)m.aPosition));
+      VRB_GL_CHECK(glDisableVertexAttribArray((GLuint)m.aUV));
+      VRB_GL_CHECK(glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0));
+
+      if (depthEnabled) {
+        VRB_GL_CHECK(glEnable(GL_DEPTH_TEST));
+      }
+      if (blendEnabled) {
+        VRB_GL_CHECK(glEnable(GL_BLEND));
+      }
+      if (cullEnabled) {
+        VRB_GL_CHECK(glEnable(GL_CULL_FACE));
+      }
+    }
+
+    void
+    ExternalBlitter::EndFrame() {
+      if (m.surface) {
+        // We need to detach the SurfaceTexture to prevent the Gecko WebGL compositor from getting blocked.
+        m.surface->ReleaseTexImage();
+        m.surface = nullptr;
+      }
+    }
+
+    void
+    ExternalBlitter::StopPresenting() {
+
+      if (m.surface) {
+        m.surface->ReleaseTexImage();
+        m.surface = nullptr;
+      }
+      m.surfaceMap.clear();
+      SetChromaKeyMode(1); //r800zz
+    }
+
+    void
+    ExternalBlitter::CancelFrame(const int32_t aSurfaceHandle) {
+      EngineSurfaceTexturePtr surface;
+      auto iter = m.surfaceMap.find(aSurfaceHandle);
+      if (iter != m.surfaceMap.end()) {
+        surface = iter->second;
+      } else {
+        surface = EngineSurfaceTexture::Create(aSurfaceHandle);
+        m.surfaceMap[aSurfaceHandle] = surface;
+      }
+
+      if (surface) {
+        EGLContext ctx = eglGetCurrentContext();
+        if (!surface->IsAttachedToGLContext(ctx)) {
+          surface->AttachToGLContext(ctx);
+        }
+        surface->UpdateTexImage();
+        surface->ReleaseTexImage();
+      }
+    }
+
+    ExternalBlitter::ExternalBlitter(State& aState, vrb::CreationContextPtr& aContext)
+            : vrb::ResourceGL(aState, aContext)
+            , m(aState)
+    {}
+
+    void
+    ExternalBlitter::InitializeGL() {
+      m.vertexShader = vrb::LoadShader(GL_VERTEX_SHADER, sVertexShader);
+      m.fragmentShader = vrb::LoadShader(GL_FRAGMENT_SHADER, sFragmentShader);
+      if (m.vertexShader && m.fragmentShader) {
+        m.program = vrb::CreateProgram(m.vertexShader, m.fragmentShader);
+      }
+      if (m.program) {
+        m.aPosition = vrb::GetAttributeLocation(m.program, "a_position");
+        m.aUV = vrb::GetAttributeLocation(m.program, "a_uv");
+        m.uTexture0 = vrb::GetUniformLocation(m.program, "u_texture0");
+#if defined(PICOXR)
+        m.uChromaKeyEnabled =
+            vrb::GetUniformLocation(m.program, "u_chromaKeyEnabled");
+        m.uAutoChromaEnabled =
+            vrb::GetUniformLocation(m.program, "u_autoChromaEnabled");
+        m.uAutoChromaKeyColor =
+            vrb::GetUniformLocation(m.program, "u_autoChromaKeyColor");
+#endif
+      }
+
+#if defined(PICOXR)
+      m.autoChromaVertexShader =
+          vrb::LoadShader(GL_VERTEX_SHADER, sVertexShader);
+      m.autoChromaFragmentShader =
+          vrb::LoadShader(GL_FRAGMENT_SHADER, sAutoChromaFragmentShader);
+      if (m.autoChromaVertexShader && m.autoChromaFragmentShader) {
+        m.autoChromaProgram =
+            vrb::CreateProgram(m.autoChromaVertexShader,
+                               m.autoChromaFragmentShader);
+      }
+      if (m.autoChromaProgram) {
+        m.autoChromaAPosition =
+            vrb::GetAttributeLocation(m.autoChromaProgram, "a_position");
+        m.autoChromaAUV =
+            vrb::GetAttributeLocation(m.autoChromaProgram, "a_uv");
+        m.autoChromaUTexture0 =
+            vrb::GetUniformLocation(m.autoChromaProgram, "u_texture0");
+
+        GLint previousFramebuffer = 0;
+        GLint previousTexture = 0;
+        GLint previousActiveTexture = 0;
+        VRB_GL_CHECK(glGetIntegerv(GL_FRAMEBUFFER_BINDING,
+                                   &previousFramebuffer));
+        VRB_GL_CHECK(glGetIntegerv(GL_ACTIVE_TEXTURE,
+                                   &previousActiveTexture));
+        VRB_GL_CHECK(glActiveTexture(GL_TEXTURE0));
+        VRB_GL_CHECK(glGetIntegerv(GL_TEXTURE_BINDING_2D,
+                                   &previousTexture));
+
+        VRB_GL_CHECK(glGenTextures(1, &m.autoChromaTexture));
+        VRB_GL_CHECK(glBindTexture(GL_TEXTURE_2D, m.autoChromaTexture));
+        VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                                     GL_LINEAR));
+        VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                                     GL_LINEAR));
+        VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                                     GL_CLAMP_TO_EDGE));
+        VRB_GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                                     GL_CLAMP_TO_EDGE));
+        VRB_GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                                  kAutoChromaSampleSize,
+                                  kAutoChromaSampleSize, 0, GL_RGBA,
+                                  GL_UNSIGNED_BYTE, nullptr));
+
+        VRB_GL_CHECK(glGenFramebuffers(1, &m.autoChromaFramebuffer));
+        VRB_GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER,
+                                       m.autoChromaFramebuffer));
+        VRB_GL_CHECK(glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+            m.autoChromaTexture, 0));
+
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
+            GL_FRAMEBUFFER_COMPLETE) {
+          VRB_GL_CHECK(glDeleteFramebuffers(1,
+                                            &m.autoChromaFramebuffer));
+          VRB_GL_CHECK(glDeleteTextures(1, &m.autoChromaTexture));
+          m.autoChromaFramebuffer = 0;
+          m.autoChromaTexture = 0;
+        }
+
+        VRB_GL_CHECK(glBindFramebuffer(
+            GL_FRAMEBUFFER, (GLuint)previousFramebuffer));
+        VRB_GL_CHECK(glBindTexture(GL_TEXTURE_2D,
+                                   (GLuint)previousTexture));
+        VRB_GL_CHECK(glActiveTexture((GLenum)previousActiveTexture));
+      }
+#endif
+    }
+
+    void
+    ExternalBlitter::ShutdownGL() {
+#if defined(PICOXR)
+      if (m.autoChromaFramebuffer) {
+        VRB_GL_CHECK(glDeleteFramebuffers(1, &m.autoChromaFramebuffer));
+        m.autoChromaFramebuffer = 0;
+      }
+      if (m.autoChromaTexture) {
+        VRB_GL_CHECK(glDeleteTextures(1, &m.autoChromaTexture));
+        m.autoChromaTexture = 0;
+      }
+      if (m.autoChromaProgram) {
+        VRB_GL_CHECK(glDeleteProgram(m.autoChromaProgram));
+        m.autoChromaProgram = 0;
+      }
+      if (m.autoChromaVertexShader) {
+        VRB_GL_CHECK(glDeleteShader(m.autoChromaVertexShader));
+        m.autoChromaVertexShader = 0;
+      }
+      if (m.autoChromaFragmentShader) {
+        VRB_GL_CHECK(glDeleteShader(m.autoChromaFragmentShader));
+        m.autoChromaFragmentShader = 0;
+      }
+#endif
+      if (m.program) {
+        VRB_GL_CHECK(glDeleteProgram(m.program));
+        m.program = 0;
+      }
+      if (m.vertexShader) {
+        VRB_GL_CHECK(glDeleteShader(m.vertexShader));
+        m.vertexShader = 0;
+      }
+      if (m.vertexShader) {
+        VRB_GL_CHECK(glDeleteShader(m.fragmentShader));
+        m.fragmentShader = 0;
+      }
+    }
+
+} // namespace crow

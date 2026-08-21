@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android">
     <data>
-        <import type="com.igalia.wolvic.ui.widgets.Windows.ContentType"/>
+        <import type="com.r800zz.r800zzbrowser.ui.widgets.Windows.ContentType"/>
         <variable
             name="delegate"
-            type="com.igalia.wolvic.ui.delegates.LibraryNavigationDelegate" />
+            type="com.r800zz.r800zzbrowser.ui.delegates.LibraryNavigationDelegate" />
         <variable
             name="canGoBack"
             type="boolean" />
@@ -28,32 +28,32 @@
                     android:layout_width="fill_parent"
                     android:layout_height="fill_parent"
                     android:orientation="vertical">
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         style="@style/libraryButtonStartTheme"
                         android:src="@drawable/ic_icon_bookmark"
                         android:id="@+id/bookmarks"
                         android:onClick="@{(view) -> delegate != null ? delegate.onButtonClick(ContentType.BOOKMARKS) : void}"/>
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         style="@style/libraryButtonMiddleTheme"
                         android:src="@drawable/ic_icon_webapps"
                         android:id="@+id/web_apps"
                         android:onClick="@{(view) -> delegate != null ? delegate.onButtonClick(ContentType.WEB_APPS) : void}"/>
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         style="@style/libraryButtonMiddleTheme"
                         android:src="@drawable/ic_icon_history"
                         android:id="@+id/history"
                         android:onClick="@{(view) -> delegate != null ? delegate.onButtonClick(ContentType.HISTORY) : void}"/>
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         style="@style/libraryButtonMiddleTheme"
                         android:src="@drawable/ic_icon_downloads"
                         android:id="@+id/downloads"
                         android:onClick="@{(view) -> delegate != null ? delegate.onButtonClick(ContentType.DOWNLOADS) : void}"/>
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         style="@style/libraryButtonMiddleTheme"
                         android:src="@drawable/ic_icon_addons"
                         android:id="@+id/addons"
                         android:onClick="@{(view) -> delegate != null ? delegate.onButtonClick(ContentType.ADDONS) : void}"/>
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         style="@style/libraryButtonMiddleTheme"
                         android:src="@drawable/ic_icon_dialog_notification"
                         android:id="@+id/notifications"
@@ -77,7 +77,7 @@
                     android:layout_marginBottom="10dp"
                     android:layout_alignParentTop="true">
 
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         android:id="@+id/backButton"
                         style="?attr/headerBarButtonStyle"
                         android:layout_alignParentStart="true"
@@ -111,7 +111,7 @@
                         android:paddingStart="0dp"
                         android:paddingEnd="15dp" />
 
-                    <com.igalia.wolvic.ui.views.UIButton
+                    <com.r800zz.r800zzbrowser.ui.views.UIButton
                         android:id="@+id/closeButton"
                         style="?attr/headerBarButtonStyle"
                         android:layout_centerVertical="true"

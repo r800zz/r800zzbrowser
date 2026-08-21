@@ -20,7 +20,7 @@
         android:textAlignment="center"
         android:textColor="?colorOnPrimary" />
 
-    <com.igalia.wolvic.AlignDynamicButton
+    <com.r800zz.r800zzbrowser.AlignDynamicButton
         android:id="@+id/realign_button"
         android:layout_width="144dp"
         android:layout_height="144dp"
