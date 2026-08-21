@@ -1,6 +1,6 @@
-# R800ZZ Browser
+# R800ZZbrowser
 
-R800ZZ Browser is a modified Wolvic-based web browser and VR video player for PICO and Meta Quest devices.
+R800ZZbrowser is a modified Wolvic-based web browser and VR video player for PICO and Meta Quest devices.
 
 It includes major modifications to Wolvic, Gecko, and Chromium for VR, AR, passthrough, chroma key compositing, and VR180 playback.
 
@@ -12,11 +12,11 @@ It includes major modifications to Wolvic, Gecko, and Chromium for VR, AR, passt
 * Meta Quest 3S
 * Meta Quest 2
 
-R800ZZ Browser is a standalone Android application and does not require a PC to run.
+R800ZZbrowser is a standalone Android application and does not require a PC to run.
 
 ## Browser Engines
 
-R800ZZ Browser is available with two browser engines:
+R800ZZbrowser is available with two browser engines:
 
 * Gecko
 * Chromium
@@ -41,7 +41,7 @@ The Chromium version includes fixes for Wolvic Chromium, including support for H
 
 ## Chroma Key
 
-R800ZZ Browser supports several chroma key modes:
+R800ZZbrowser supports several chroma key modes:
 
 * Green
 * Black
@@ -53,7 +53,7 @@ Chroma key compositing can be used with passthrough to make the selected backgro
 
 ## VR180 Video
 
-R800ZZ Browser can also be used as a VR video player.
+R800ZZbrowser can also be used as a VR video player.
 
 For VR180 SBS video:
 
@@ -82,7 +82,7 @@ This feature attempts to make the background transparent using AI image segmenta
 
 ## Development
 
-R800ZZ Browser is an Android native application.
+R800ZZbrowser is an Android native application.
 
 It does not use Unity or Unreal Engine.
 
@@ -93,7 +93,7 @@ Main development languages:
 
 ## Based On
 
-R800ZZ Browser is based on Wolvic and includes modifications to:
+R800ZZbrowser is based on Wolvic and includes modifications to:
 
 * Wolvic
 * wolvic-gecko / GeckoView
