@@ -4,6 +4,9 @@ R800ZZbrowser is a modified Wolvic-based web browser and VR video player for PIC
 
 It includes major modifications to Wolvic, Gecko, and Chromium for VR, AR, passthrough, chroma key compositing, and VR180 playback.
 
+## Download
+https://github.com/r800zz/r800zzbrowser/releases/latest
+
 ## Supported Devices
 
 * PICO 4 Ultra
