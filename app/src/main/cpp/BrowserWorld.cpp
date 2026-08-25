@@ -234,6 +234,10 @@ struct BrowserWorld::State {
   float selectThreshold;
   std::optional<vrb::Quaternion> windowInitialOrientation;
   std::optional<vrb::Quaternion> previousWindowRelativeRotation;
+//
+  std::optional<vrb::Matrix> windowInitialReorientTransform; //r800zz
+  std::optional<vrb::Matrix> windowBaselineReorientTransform; //r800zz
+//
   std::chrono::steady_clock::time_point lastTimeWindowDistanceComputation;
 
   State() : paused(true), glInitialized(false), modelsLoaded(false), env(nullptr), cylinderDensity(0.0f), nearClip(0.1f),
@@ -1288,7 +1292,36 @@ BrowserWorld::StartFrame() {
 
         ThrottledWindowDistanceComputation(reorientTransform);
       }
-      m.device->Reorient(reorientTransform, m.lockMode == LockMode::HEAD ? DeviceDelegate::ReorientMode::SIX_DOF : DeviceDelegate::ReorientMode::NO_ROLL);
+      //m.device->Reorient(reorientTransform, m.lockMode == LockMode::HEAD ? DeviceDelegate::ReorientMode::SIX_DOF : DeviceDelegate::ReorientMode::NO_ROLL);
+//
+if (m.lockMode == LockMode::CONTROLLER) { //r800zz
+  m.device->Reorient(
+      reorientTransform,
+      DeviceDelegate::ReorientMode::NO_ROLL); //r800zz
+
+  vrb::Matrix calculatedReorient =
+      m.device->GetReorientTransform(); //r800zz
+
+  if (!m.windowBaselineReorientTransform) { //r800zz
+    m.windowBaselineReorientTransform = calculatedReorient; //r800zz
+  } //r800zz
+
+  if (m.windowInitialReorientTransform &&
+      m.windowBaselineReorientTransform) { //r800zz
+    vrb::Matrix deltaReorient =
+        calculatedReorient.PostMultiply(
+            m.windowBaselineReorientTransform->AfineInverse()); //r800zz
+
+    m.device->SetReorientTransform(
+        deltaReorient.PostMultiply(
+            *m.windowInitialReorientTransform)); //r800zz
+  } //r800zz
+} else { //r800zz
+  m.device->Reorient(
+      reorientTransform,
+      DeviceDelegate::ReorientMode::SIX_DOF); //r800zz
+} //r800zz
+//
     } else {
         m.previousWindowRelativeRotation.reset();
     }
@@ -1395,6 +1428,21 @@ BrowserWorld::SetLockMode(LockMode lockMode) {
   ASSERT_ON_RENDER_THREAD();
   if (m.lockMode == lockMode)
       return;
+//
+  if (lockMode == LockMode::CONTROLLER) { //r800zz
+    m.windowInitialOrientation.reset(); //r800zz
+    m.previousWindowRelativeRotation.reset(); //r800zz
+    m.lockModeLastPosition.reset(); //r800zz
+    m.windowInitialReorientTransform = m.device->GetReorientTransform(); //r800zz
+    m.windowBaselineReorientTransform.reset(); //r800zz
+  } else if (m.lockMode == LockMode::CONTROLLER) { //r800zz
+    m.windowInitialOrientation.reset(); //r800zz
+    m.previousWindowRelativeRotation.reset(); //r800zz
+    m.lockModeLastPosition.reset(); //r800zz
+    m.windowInitialReorientTransform.reset(); //r800zz
+    m.windowBaselineReorientTransform.reset(); //r800zz
+  } //r800zz
+//
   m.lockMode = lockMode;
 }
 
